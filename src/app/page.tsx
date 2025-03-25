@@ -1,11 +1,13 @@
 "use client";
 
+import "./styles.css";
 import React, { useEffect, useState, useRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
 import { Library } from '@googlemaps/js-api-loader';
 import * as d3 from "d3";
+import * as topojson from "topojson-client";
 
 const libraries: Library[] = ["places"];
 
@@ -14,42 +16,50 @@ interface InputState {
   h: number;
   x: number;
   y: number;
-  }
-  
-  interface Point {
-    x: number;
-    y: number;
-    result: number;
-  }
-  
-  function generateRandomData(mapData: GeoJSON.Feature[], projection: d3.GeoProjection, width: number, height: number): Point[] {
-    const dcBoundary = mapData.find(feature => feature.properties?.name === "District of Columbia");
-    if (!dcBoundary) return [];
-  
-    const data: Point[] = [];
-    while (data.length < 100) {
-      const point: Point = {
-        x: Math.random() * width,
-        y: Math.random() * height,
-        result: Math.round(Math.random()),
-      };
-      const invertedPoint = projection.invert ? projection.invert([point.x, point.y]) : null;
+}
+
+interface Point {
+  x: number;
+  y: number;
+  result: number;
+}
+
+function gatherEligiblePoints(mapData: GeoJSON.Feature[], projection: d3.GeoProjection, width: number, height: number): Point[] {
+  const dcBoundary = mapData.find(feature => feature.properties?.name === "District of Columbia");
+  if (!dcBoundary) return [];
+
+  const eligiblePoints: Point[] = [];
+  for (let x = 0; x < width; x += 10) {
+    for (let y = 0; y < height; y += 10) {
+      const invertedPoint = projection.invert ? projection.invert([x, y]) : null;
       if (invertedPoint) {
         const [longitude, latitude] = invertedPoint;
         if (d3.geoContains(dcBoundary, [longitude, latitude])) {
-          data.push(point);
+          eligiblePoints.push({ x, y, result: Math.round(Math.random()) });
         }
       }
     }
-    return data;
   }
+  return eligiblePoints;
+}
+
+function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
+  const sampledPoints: Point[] = [];
+  while (sampledPoints.length < sampleSize && eligiblePoints.length > 0) {
+    const index = Math.floor(Math.random() * eligiblePoints.length);
+    sampledPoints.push(eligiblePoints.splice(index, 1)[0]);
+  }
+  return sampledPoints;
+}
 
 function renderMap(mapData: GeoJSON.Feature[], mapRef: React.RefObject<HTMLDivElement>, data: Point[]) {
   const width = 800;
   const height = 600;
 
   const svg = d3.select(mapRef.current)
-    .select("svg");
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height);
 
   const projection = d3.geoAlbersUsa()
     .scale(1000)
@@ -68,11 +78,6 @@ function renderMap(mapData: GeoJSON.Feature[], mapRef: React.RefObject<HTMLDivEl
     .attr("d", path as unknown as string)
     .attr("fill", "#ccc")
     .attr("stroke", "#333");
-
-  const dcBoundary = mapData.find(feature => feature.properties?.name === "District of Columbia");
-  if (!dcBoundary) return;
-
-  // Data is now passed as an argument, so no need to generate it here
 
   svg.selectAll("circle")
     .data(data)
@@ -105,8 +110,9 @@ export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [isMapLoading, setIsMapLoading] = useState<boolean>(true);
+
   const inputRef = useRef<HTMLInputElement>(null);
-  const mapRef = useRef<HTMLDivElement>(null!);
+  const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isLoaded || loadError) return;
@@ -125,17 +131,47 @@ export default function App() {
   useEffect(() => {
     const cachedMapData = localStorage.getItem("mapData");
     if (cachedMapData) {
+      const mapData = JSON.parse(cachedMapData);
+      const width = 800;
+      const height = 600;
+      const projection = d3.geoAlbersUsa()
+        .scale(1000)
+        .translate([width / 2, height / 2]);
+      const eligiblePoints = gatherEligiblePoints(mapData, projection, width, height);
+      const data = samplePoints(eligiblePoints, 100);
       if (mapRef.current) {
-        const mapData = JSON.parse(cachedMapData);
-        const width = 800;
-        const height = 600;
-        const projection = d3.geoAlbersUsa()
-          .scale(1000)
-          .translate([width / 2, height / 2]);
-        const data = generateRandomData(mapData, projection, width, height);
         renderMap(mapData, mapRef as React.RefObject<HTMLDivElement>, data);
       }
-      setIsMapLoading(false);
+    setIsMapLoading(false);
+    } else {
+      const width = 800;
+      const height = 600;
+
+      const svg = d3.select(mapRef.current)
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+      const projection = d3.geoAlbersUsa()
+        .scale(1000)
+        .translate([width / 2, height / 2]);
+
+      const path = d3.geoPath().projection(projection);
+
+      const color = d3.scaleOrdinal()
+        .domain(["0", "1"])
+        .range(["#001f3f", "#7FDBFF"]);
+
+      d3.json("https://d3js.org/us-10m.v1.json").then(function(us: any) {
+        const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features;
+        localStorage.setItem("mapData", JSON.stringify(mapData));
+        const eligiblePoints = gatherEligiblePoints(mapData, projection, width, height);
+        const data = samplePoints(eligiblePoints, 100);
+        if (mapRef.current) {
+          renderMap(mapData, mapRef as React.RefObject<HTMLDivElement>, data);
+        }
+        setIsMapLoading(false);
+      });
     }
   }, []);
 
@@ -200,7 +236,7 @@ export default function App() {
             onChange={handleChange}
             showTimeSelect
             dateFormat="Pp"
-            className="border p-2 w-full rounded"
+            className="border p-2 w-full rounded custom-datepicker" // Apply custom class
           />
           <button type="submit" className="bg-blue-500 text-white p-2 rounded" disabled={isLoading}>
             {isLoading ? "Loading..." : "Submit"}
