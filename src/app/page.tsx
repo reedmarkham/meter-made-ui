@@ -79,13 +79,13 @@ export default function App() {
     // Color scale for the results
     const color = d3.scaleOrdinal()
       .domain(["0", "1"])
-      .range(["red", "green"]);
+      .range(["#13294B", "#4B9CD3"]);
 
     // Load and display the map of DC
     d3.json("https://d3js.org/us-10m.v1.json").then(function(us: any) {
       svg.append("g")
         .selectAll("path")
-        .data((topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features)
+        .data((topojson.feature(us, us.objects.states) as any).features)
         .enter().append("path")
         .attr("d", path as unknown as string)
         .attr("fill", "#ccc")
