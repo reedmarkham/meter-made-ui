@@ -6,8 +6,6 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
 import { Library } from '@googlemaps/js-api-loader';
 import * as d3 from "d3";
-import * as topojson from "topojson-client";
-import { Topology, GeometryCollection } from "topojson-specification";
 
 const libraries: Library[] = ["places"];
 
