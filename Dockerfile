@@ -17,9 +17,6 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
-# Copy environment variables file (for local deploys)
-# COPY .env ./
-
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
@@ -30,6 +27,11 @@ COPY . .
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
 # ENV NEXT_TELEMETRY_DISABLED=1
+
+ARG NEXT_PUBLIC_GOOGLE_API_KEY
+ARG NEXT_PUBLIC_MODEL_API
+ENV NEXT_PUBLIC_GOOGLE_API_KEY=$NEXT_PUBLIC_GOOGLE_API_KEY
+ENV NEXT_PUBLIC_MODEL_API=$NEXT_PUBLIC_MODEL_API
 
 RUN \
   if [ -f yarn.lock ]; then yarn run build; \
