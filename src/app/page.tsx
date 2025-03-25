@@ -7,6 +7,7 @@ import { useLoadScript } from "@react-google-maps/api";
 import { Library } from '@googlemaps/js-api-loader';
 import * as d3 from "d3";
 import * as topojson from "topojson-client";
+import { Topology } from "topojson-specification";
 import "./styles.css"; // Import the custom CSS file
 
 const libraries: Library[] = ["places"];
@@ -151,8 +152,9 @@ export default function App() {
         .scale(1000)
         .translate([width / 2, height / 2]);
 
-      d3.json("https://d3js.org/us-10m.v1.json").then(function(us: any) {
-        const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features;
+      d3.json("https://d3js.org/us-10m.v1.json").then(function(us) {
+        const topology = us as Topology;
+        const mapData = (topojson.feature(topology, topology.objects.states) as unknown as GeoJSON.FeatureCollection).features;
         localStorage.setItem("mapData", JSON.stringify(mapData));
         const eligiblePoints = gatherEligiblePoints(mapData, projection, width, height);
         const data = samplePoints(eligiblePoints, 100);
