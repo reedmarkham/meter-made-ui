@@ -17,8 +17,8 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
-# Copy environment variables file
-COPY .env ./
+# Copy environment variables file (for local deploys)
+# COPY .env ./
 
 # Rebuild the source code only when needed
 FROM base AS builder
