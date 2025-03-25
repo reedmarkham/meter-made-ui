@@ -7,6 +7,7 @@ import { useLoadScript } from "@react-google-maps/api";
 import { Library } from '@googlemaps/js-api-loader';
 import * as d3 from "d3";
 import * as topojson from "topojson-client";
+import { Topology, GeometryCollection } from "topojson-specification";
 
 const libraries: Library[] = ["places"];
 
@@ -15,7 +16,35 @@ interface InputState {
   h: number;
   x: number;
   y: number;
-}
+  }
+  
+  interface Point {
+    x: number;
+    y: number;
+    result: number;
+  }
+  
+  function generateRandomData(mapData: GeoJSON.Feature[], projection: d3.GeoProjection, width: number, height: number): Point[] {
+    const dcBoundary = mapData.find(feature => feature.properties?.name === "District of Columbia");
+    if (!dcBoundary) return [];
+  
+    const data: Point[] = [];
+    while (data.length < 100) {
+      const point: Point = {
+        x: Math.random() * width,
+        y: Math.random() * height,
+        result: Math.round(Math.random()),
+      };
+      const invertedPoint = projection.invert ? projection.invert([point.x, point.y]) : null;
+      if (invertedPoint) {
+        const [longitude, latitude] = invertedPoint;
+        if (d3.geoContains(dcBoundary, [longitude, latitude])) {
+          data.push(point);
+        }
+      }
+    }
+    return data;
+  }
 
 export default function App() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
@@ -40,9 +69,9 @@ export default function App() {
   const [predictionResult, setPredictionResult] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
-
+  const [isMapLoading, setIsMapLoading] = useState<boolean>(true);
   const inputRef = useRef<HTMLInputElement>(null);
-  const mapRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<HTMLDivElement>(null!);
 
   useEffect(() => {
     if (!isLoaded || loadError) return;
@@ -59,112 +88,20 @@ export default function App() {
   }, [isLoaded, loadError]);
 
   useEffect(() => {
-    // Set up the SVG canvas dimensions
-    const width = 800;
-    const height = 600;
-
-    // Create the SVG element
-    const svg = d3.select(mapRef.current)
-      .append("svg")
-      .attr("width", width)
-      .attr("height", height);
-
-    // Define the projection and path generator
-    const projection = d3.geoAlbersUsa()
-      .scale(1000)
-      .translate([width / 2, height / 2]);
-
-    const path = d3.geoPath().projection(projection);
-
-    // Color scale for the results
-    const color = d3.scaleOrdinal()
-      .domain(["0", "1"])
-      .range(["#13294B", "#4B9CD3"]);
-
-    // Load and display the map of DC
-    d3.json("https://d3js.org/us-10m.v1.json").then(function(us: any) {
-      svg.append("g")
-        .selectAll("path")
-        .data((topojson.feature(us, us.objects.states) as any).features)
-        .enter().append("path")
-        .attr("d", path as unknown as string)
-        .attr("fill", "#ccc")
-        .attr("stroke", "#333");
-
-      // Generate random data points for demonstration
-      const data = d3.range(100).map(() => ({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        result: Math.round(Math.random())
-      }));
-
-      // Plot the data points
-      svg.selectAll("circle")
-        .data(data)
-        .enter().append("circle")
-        .attr("cx", (d: { x: number; y: number; result: number }) => d.x)
-        .attr("cy", (d: { x: number; y: number; result: number }) => d.y)
-        .attr("r", 5)
-        .attr("fill", (d: { x: number; y: number; result: number }) => color(d.result.toString()) as string);
-    });
-
-    // Function to call the model and get predictions
-    async function makePrediction(inputData: InputState) {
-      const apiUrl = process.env.NEXT_PUBLIC_MODEL_API;
-      if (!apiUrl) {
-        throw new Error("NEXT_PUBLIC_MODEL_API environment variable is not defined");
+    const cachedMapData = localStorage.getItem("mapData");
+    if (cachedMapData) {
+      if (mapRef.current) {
+        const mapData = JSON.parse(cachedMapData);
+        const width = 800;
+        const height = 600;
+        const projection = d3.geoAlbersUsa()
+          .scale(1000)
+          .translate([width / 2, height / 2]);
+        const data = generateRandomData(mapData, projection, width, height);
+        renderMap(mapData, mapRef as React.RefObject<HTMLDivElement>, data);
       }
-
-      console.log("NEXT_PUBLIC_MODEL_API:", apiUrl);
-      console.log("Input Data:", inputData);
-
-      try {
-        const response = await fetch(apiUrl, {
-          method: "POST",
-          headers: {
-            "accept": "application/json",
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(inputData),
-        });
-
-        const data = await response.json();
-        console.log("API Response:", data);
-
-        if (response.ok) {
-          return data.ticketed;
-        } else {
-          throw new Error(data.error || "Prediction failed");
-        }
-      } catch (error) {
-        console.error("Prediction error:", error);
-        throw error;
-      }
+      setIsMapLoading(false);
     }
-
-    // Update the data points with model predictions
-    async function updateData() {
-      const currentDate = new Date();
-      const data = await Promise.all(d3.range(100).map(async () => {
-        const x = Math.random() * width;
-        const y = Math.random() * height;
-        const inputData = {
-          d: currentDate.toISOString().split('T')[0],
-          h: currentDate.getHours(),
-          x: x,
-          y: y
-        };
-        const result = await makePrediction(inputData);
-        return { x, y, result };
-      }));
-
-      svg.selectAll("circle")
-        .data(data)
-        .attr("fill", (d: { x: number; y: number; result: number }) => color(d.result.toString()) as string);
-    }
-
-    // Update the data every hour
-    setInterval(updateData, 3600000);
   }, []);
 
   const handlePlaceChanged = (autocomplete: google.maps.places.Autocomplete) => {
@@ -217,9 +154,6 @@ export default function App() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900">
       <div className="w-full max-w-xl flex flex-col gap-4 bg-gray-800 p-6 rounded-lg shadow-lg">
-        <div className="text-white">
-          By (of code) <a href="https://cs.wikipedia.org/wiki/User:-xfi-" className="extiw" title="cs:User:-xfi-">cs:User:-xfi-</a> - own code according to <a rel="nofollow" className="external text" href="http://fotw.vexillum.com/flags/us-dc.html">Construction Details</a> (Government of the District of Columbia, untitled monograph, 1963, pp. 21-23., Public Domain, <a href="https://commons.wikimedia.org/w/index.php?curid=326649">Link</a>
-        </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             ref={inputRef}
@@ -245,6 +179,7 @@ export default function App() {
             <strong>Prediction Result:</strong> {predictionResult === 0 ? "You are unlikely to get an expired meter ticket" : "You are likely to get an expired meter ticket"}
           </div>
         )}
+        {isMapLoading && <div className="mt-4 text-white">Loading map...</div>}
         <div ref={mapRef} className="mt-4"></div> {/* Add a div to render the map */}
       </div>
     </div>
@@ -282,4 +217,42 @@ async function makePrediction(inputData: InputState) {
     console.error("Prediction error:", error);
     throw error;
   }
+}
+function renderMap(mapData: GeoJSON.Feature[], mapRef: React.RefObject<HTMLDivElement>, data: Point[]) {
+  const width = 800;
+  const height = 600;
+
+  const svg = d3.select(mapRef.current)
+    .select("svg");
+
+  const projection = d3.geoAlbersUsa()
+    .scale(1000)
+    .translate([width / 2, height / 2]);
+
+  const path = d3.geoPath().projection(projection);
+
+  const color = d3.scaleOrdinal()
+    .domain(["0", "1"])
+    .range(["#001f3f", "#7FDBFF"]);
+
+  svg.append("g")
+    .selectAll("path")
+    .data(mapData)
+    .enter().append("path")
+    .attr("d", path as unknown as string)
+    .attr("fill", "#ccc")
+    .attr("stroke", "#333");
+
+  const dcBoundary = mapData.find(feature => feature.properties?.name === "District of Columbia");
+  if (!dcBoundary) return;
+
+  // Data is now passed as an argument, so no need to generate it here
+
+  svg.selectAll("circle")
+    .data(data)
+    .enter().append("circle")
+    .attr("cx", (d: { x: number; y: number; result: number }) => d.x)
+    .attr("cy", (d: { x: number; y: number; result: number }) => d.y)
+    .attr("r", 5)
+    .attr("fill", (d: { x: number; y: number; result: number }) => color(d.result.toString()) as string);
 }
