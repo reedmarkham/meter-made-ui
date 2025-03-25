@@ -5,6 +5,8 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
 import { Library } from '@googlemaps/js-api-loader';
+import * as d3 from "d3";
+import * as topojson from "topojson-client";
 
 const libraries: Library[] = ["places"];
 
@@ -40,6 +42,7 @@ export default function App() {
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isLoaded || loadError) return;
@@ -54,6 +57,115 @@ export default function App() {
 
     return () => google.maps.event.clearInstanceListeners(autocomplete);
   }, [isLoaded, loadError]);
+
+  useEffect(() => {
+    // Set up the SVG canvas dimensions
+    const width = 800;
+    const height = 600;
+
+    // Create the SVG element
+    const svg = d3.select(mapRef.current)
+      .append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+    // Define the projection and path generator
+    const projection = d3.geoAlbersUsa()
+      .scale(1000)
+      .translate([width / 2, height / 2]);
+
+    const path = d3.geoPath().projection(projection);
+
+    // Color scale for the results
+    const color = d3.scaleOrdinal()
+      .domain(["0", "1"])
+      .range(["red", "green"]);
+
+    // Load and display the map of DC
+    d3.json("https://d3js.org/us-10m.v1.json").then(function(us: any) {
+      svg.append("g")
+        .selectAll("path")
+        .data((topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features)
+        .enter().append("path")
+        .attr("d", path as unknown as string)
+        .attr("fill", "#ccc")
+        .attr("stroke", "#333");
+
+      // Generate random data points for demonstration
+      const data = d3.range(100).map(() => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        result: Math.round(Math.random())
+      }));
+
+      // Plot the data points
+      svg.selectAll("circle")
+        .data(data)
+        .enter().append("circle")
+        .attr("cx", (d: { x: number; y: number; result: number }) => d.x)
+        .attr("cy", (d: { x: number; y: number; result: number }) => d.y)
+        .attr("r", 5)
+        .attr("fill", (d: { x: number; y: number; result: number }) => color(d.result.toString()) as string);
+    });
+
+    // Function to call the model and get predictions
+    async function makePrediction(inputData: InputState) {
+      const apiUrl = process.env.NEXT_PUBLIC_MODEL_API;
+      if (!apiUrl) {
+        throw new Error("NEXT_PUBLIC_MODEL_API environment variable is not defined");
+      }
+
+      console.log("NEXT_PUBLIC_MODEL_API:", apiUrl);
+      console.log("Input Data:", inputData);
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "accept": "application/json",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(inputData),
+        });
+
+        const data = await response.json();
+        console.log("API Response:", data);
+
+        if (response.ok) {
+          return data.ticketed;
+        } else {
+          throw new Error(data.error || "Prediction failed");
+        }
+      } catch (error) {
+        console.error("Prediction error:", error);
+        throw error;
+      }
+    }
+
+    // Update the data points with model predictions
+    async function updateData() {
+      const currentDate = new Date();
+      const data = await Promise.all(d3.range(100).map(async () => {
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        const inputData = {
+          d: currentDate.toISOString().split('T')[0],
+          h: currentDate.getHours(),
+          x: x,
+          y: y
+        };
+        const result = await makePrediction(inputData);
+        return { x, y, result };
+      }));
+
+      svg.selectAll("circle")
+        .data(data)
+        .attr("fill", (d: { x: number; y: number; result: number }) => color(d.result.toString()) as string);
+    }
+
+    // Update the data every hour
+    setInterval(updateData, 3600000);
+  }, []);
 
   const handlePlaceChanged = (autocomplete: google.maps.places.Autocomplete) => {
     const place = autocomplete.getPlace();
@@ -133,6 +245,7 @@ export default function App() {
             <strong>Prediction Result:</strong> {predictionResult === 0 ? "You are unlikely to get an expired meter ticket" : "You are likely to get an expired meter ticket"}
           </div>
         )}
+        <div ref={mapRef} className="mt-4"></div> {/* Add a div to render the map */}
       </div>
     </div>
   );

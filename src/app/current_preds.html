@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D3.js Visualization</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://d3js.org/topojson.v1.min.js"></script> <!-- Include topojson library -->
+    <style>
+        .map {
+            width: 800px;
+            height: 600px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map" class="map"></div>
+    <script>
+        // Set up the SVG canvas dimensions
+        const width = 800;
+        const height = 600;
+
+        // Create the SVG element
+        const svg = d3.select("#map")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Define the projection and path generator
+        const projection = d3.geoAlbersUsa()
+            .scale(1000)
+            .translate([width / 2, height / 2]);
+
+        const path = d3.geoPath().projection(projection);
+
+        // Load and display the map of DC
+        d3.json("https://d3js.org/us-10m.v1.json").then(function(us) {
+            svg.append("g")
+                .selectAll("path")
+                .data(topojson.feature(us, us.objects.states).features)
+                .enter().append("path")
+                .attr("d", path)
+                .attr("fill", "#ccc")
+                .attr("stroke", "#333");
+
+            // Generate random data points for demonstration
+            const data = d3.range(100).map(() => ({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                result: Math.round(Math.random())
+            }));
+
+            // Color scale for the results
+            const color = d3.scaleOrdinal()
+                .domain([0, 1])
+                .range(["red", "green"]);
+
+            // Plot the data points
+            svg.selectAll("circle")
+                .data(data)
+                .enter().append("circle")
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y)
+                .attr("r", 5)
+                .attr("fill", d => color(d.result));
+        });
+
+        // Function to call the model and get predictions
+        async function makePrediction(inputData) {
+            const apiUrl = process.env.NEXT_PUBLIC_MODEL_API;
+            if (!apiUrl) {
+                throw new Error("NEXT_PUBLIC_MODEL_API environment variable is not defined");
+            }
+
+            console.log("NEXT_PUBLIC_MODEL_API:", apiUrl);
+            console.log("Input Data:", inputData);
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: {
+                        "accept": "application/json",
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(inputData),
+                });
+
+                const data = await response.json();
+                console.log("API Response:", data);
+
+                if (response.ok) {
+                    return data.ticketed;
+                } else {
+                    throw new Error(data.error || "Prediction failed");
+                }
+            } catch (error) {
+                console.error("Prediction error:", error);
+                throw error;
+            }
+        }
+
+        // Update the data points with model predictions
+        async function updateData() {
+            const currentDate = new Date();
+            const data = await Promise.all(d3.range(100).map(async () => {
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const inputData = {
+                    d: currentDate.toISOString().split('T')[0],
+                    h: currentDate.getHours(),
+                    x: x,
+                    y: y
+                };
+                const result = await makePrediction(inputData);
+                return { x, y, result };
+            }));
+
+            svg.selectAll("circle")
+                .data(data)
+                .attr("fill", d => color(d.result));
+        }
+
+        // Update the data every hour
+        setInterval(updateData, 3600000);
+    </script>
+</body>
+</html>
