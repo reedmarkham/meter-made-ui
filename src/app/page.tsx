@@ -1,6 +1,5 @@
 "use client";
 
-import "./styles.css";
 import React, { useEffect, useState, useRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -8,6 +7,7 @@ import { useLoadScript } from "@react-google-maps/api";
 import { Library } from '@googlemaps/js-api-loader';
 import * as d3 from "d3";
 import * as topojson from "topojson-client";
+import "./styles.css"; // Import the custom CSS file
 
 const libraries: Library[] = ["places"];
 
@@ -82,10 +82,10 @@ function renderMap(mapData: GeoJSON.Feature[], mapRef: React.RefObject<HTMLDivEl
   svg.selectAll("circle")
     .data(data)
     .enter().append("circle")
-    .attr("cx", (d: { x: number; y: number; result: number }) => d.x)
-    .attr("cy", (d: { x: number; y: number; result: number }) => d.y)
+    .attr("cx", (d: Point) => d.x)
+    .attr("cy", (d: Point) => d.y)
     .attr("r", 5)
-    .attr("fill", (d: { x: number; y: number; result: number }) => color(d.result.toString()) as string);
+    .attr("fill", (d: Point) => color(d.result.toString()) as string);
 }
 
 export default function App() {
@@ -142,25 +142,14 @@ export default function App() {
       if (mapRef.current) {
         renderMap(mapData, mapRef as React.RefObject<HTMLDivElement>, data);
       }
-    setIsMapLoading(false);
+      setIsMapLoading(false);
     } else {
       const width = 800;
       const height = 600;
 
-      const svg = d3.select(mapRef.current)
-        .append("svg")
-        .attr("width", width)
-        .attr("height", height);
-
       const projection = d3.geoAlbersUsa()
         .scale(1000)
         .translate([width / 2, height / 2]);
-
-      const path = d3.geoPath().projection(projection);
-
-      const color = d3.scaleOrdinal()
-        .domain(["0", "1"])
-        .range(["#001f3f", "#7FDBFF"]);
 
       d3.json("https://d3js.org/us-10m.v1.json").then(function(us: any) {
         const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features;
@@ -173,7 +162,7 @@ export default function App() {
         setIsMapLoading(false);
       });
     }
-  }, []);
+  }, [isLoaded, loadError]);
 
   const handlePlaceChanged = (autocomplete: google.maps.places.Autocomplete) => {
     const place = autocomplete.getPlace();
