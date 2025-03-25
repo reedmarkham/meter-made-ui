@@ -105,6 +105,9 @@ export default function App() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900">
       <div className="w-full max-w-xl flex flex-col gap-4 bg-gray-800 p-6 rounded-lg shadow-lg">
+        <div className="text-white">
+          By (of code) <a href="https://cs.wikipedia.org/wiki/User:-xfi-" className="extiw" title="cs:User:-xfi-">cs:User:-xfi-</a> - own code according to <a rel="nofollow" className="external text" href="http://fotw.vexillum.com/flags/us-dc.html">Construction Details</a> (Government of the District of Columbia, untitled monograph, 1963, pp. 21-23., Public Domain, <a href="https://commons.wikimedia.org/w/index.php?curid=326649">Link</a>
+        </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             ref={inputRef}
