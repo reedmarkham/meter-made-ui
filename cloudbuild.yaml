@@ -7,9 +7,9 @@ steps:
       - >-
         $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
       - '--build-arg'
-      - NEXT_PUBLIC_GOOGLE_API_KEY=$$NEXT_PUBLIC_GOOGLE_API_KEY
+      - NEXT_PUBLIC_GOOGLE_API_KEY=$_NEXT_PUBLIC_GOOGLE_API_KEY
       - '--build-arg'
-      - NEXT_PUBLIC_MODEL_API=$$NEXT_PUBLIC_MODEL_API
+      - NEXT_PUBLIC_MODEL_API=$_NEXT_PUBLIC_MODEL_API
       - .
       - '-f'
       - Dockerfile
@@ -33,8 +33,7 @@ steps:
       - >-
         --image=$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
       - '--region=$_DEPLOY_REGION'
-      - >-
-        --set-secrets=NEXT_PUBLIC_GOOGLE_API_KEY=NEXT_PUBLIC_GOOGLE_API_KEY:latest
+      - '--set-secrets=NEXT_PUBLIC_GOOGLE_API_KEY=NEXT_PUBLIC_GOOGLE_API_KEY:latest'
       - '--set-secrets=NEXT_PUBLIC_MODEL_API=NEXT_PUBLIC_MODEL_API:latest'
       - '--quiet'
     id: Deploy
@@ -46,13 +45,13 @@ options:
   substitutionOption: ALLOW_LOOSE
   logging: CLOUD_LOGGING_ONLY
 substitutions:
-  _PLATFORM: managed
   _SERVICE_NAME: meter-made-ui
   _DEPLOY_REGION: us-east4
   _TRIGGER_ID: 0e26f6a5-41fe-4e66-a790-d1a3a1faeacd
   _AR_HOSTNAME: us-east4-docker.pkg.dev
   _AR_REPOSITORY: cloud-run-source-deploy
   _AR_PROJECT_ID: meter-made-454616
+  _PLATFORM: managed
 tags:
   - gcp-cloud-build-deploy-cloud-run
   - gcp-cloud-build-deploy-cloud-run-managed
