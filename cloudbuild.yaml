@@ -1,5 +1,5 @@
 steps:
-  - name: gcr.io/cloud-builders/docker
+  - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
     args:
       - '-c'
@@ -8,8 +8,8 @@ steps:
         NEXT_PUBLIC_MODEL_API=$(gcloud secrets versions access latest --secret=NEXT_PUBLIC_MODEL_API --project=397485407730) &&
         docker build --no-cache \
           -t $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA \
-          --build-arg NEXT_PUBLIC_GOOGLE_API_KEY=$NEXT_PUBLIC_GOOGLE_API_KEY \
-          --build-arg NEXT_PUBLIC_MODEL_API=$NEXT_PUBLIC_MODEL_API \
+          --build-arg NEXT_PUBLIC_GOOGLE_API_KEY=$$NEXT_PUBLIC_GOOGLE_API_KEY \
+          --build-arg NEXT_PUBLIC_MODEL_API=$$NEXT_PUBLIC_MODEL_API \
           -f Dockerfile .
     id: Build
   - name: gcr.io/cloud-builders/docker
