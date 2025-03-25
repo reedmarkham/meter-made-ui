@@ -44,6 +44,45 @@ interface InputState {
     return data;
   }
 
+function renderMap(mapData: GeoJSON.Feature[], mapRef: React.RefObject<HTMLDivElement>, data: Point[]) {
+  const width = 800;
+  const height = 600;
+
+  const svg = d3.select(mapRef.current)
+    .select("svg");
+
+  const projection = d3.geoAlbersUsa()
+    .scale(1000)
+    .translate([width / 2, height / 2]);
+
+  const path = d3.geoPath().projection(projection);
+
+  const color = d3.scaleOrdinal()
+    .domain(["0", "1"])
+    .range(["#001f3f", "#7FDBFF"]);
+
+  svg.append("g")
+    .selectAll("path")
+    .data(mapData)
+    .enter().append("path")
+    .attr("d", path as unknown as string)
+    .attr("fill", "#ccc")
+    .attr("stroke", "#333");
+
+  const dcBoundary = mapData.find(feature => feature.properties?.name === "District of Columbia");
+  if (!dcBoundary) return;
+
+  // Data is now passed as an argument, so no need to generate it here
+
+  svg.selectAll("circle")
+    .data(data)
+    .enter().append("circle")
+    .attr("cx", (d: { x: number; y: number; result: number }) => d.x)
+    .attr("cy", (d: { x: number; y: number; result: number }) => d.y)
+    .attr("r", 5)
+    .attr("fill", (d: { x: number; y: number; result: number }) => color(d.result.toString()) as string);
+}
+
 export default function App() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
   if (!apiKey) {
@@ -215,42 +254,4 @@ async function makePrediction(inputData: InputState) {
     console.error("Prediction error:", error);
     throw error;
   }
-}
-function renderMap(mapData: GeoJSON.Feature[], mapRef: React.RefObject<HTMLDivElement>, data: Point[]) {
-  const width = 800;
-  const height = 600;
-
-  const svg = d3.select(mapRef.current)
-    .select("svg");
-
-  const projection = d3.geoAlbersUsa()
-    .scale(1000)
-    .translate([width / 2, height / 2]);
-
-  const path = d3.geoPath().projection(projection);
-
-  const color = d3.scaleOrdinal()
-    .domain(["0", "1"])
-    .range(["#001f3f", "#7FDBFF"]);
-
-  svg.append("g")
-    .selectAll("path")
-    .data(mapData)
-    .enter().append("path")
-    .attr("d", path as unknown as string)
-    .attr("fill", "#ccc")
-    .attr("stroke", "#333");
-
-  const dcBoundary = mapData.find(feature => feature.properties?.name === "District of Columbia");
-  if (!dcBoundary) return;
-
-  // Data is now passed as an argument, so no need to generate it here
-
-  svg.selectAll("circle")
-    .data(data)
-    .enter().append("circle")
-    .attr("cx", (d: { x: number; y: number; result: number }) => d.x)
-    .attr("cy", (d: { x: number; y: number; result: number }) => d.y)
-    .attr("r", 5)
-    .attr("fill", (d: { x: number; y: number; result: number }) => color(d.result.toString()) as string);
 }
