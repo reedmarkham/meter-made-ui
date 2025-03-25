@@ -98,28 +98,30 @@ export default function App() {
   };
 
   return (
-    <div className="w-full max-w-xl flex flex-col gap-4">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder="Enter an address"
-          className="border p-2 w-full"
-        />
-        <DatePicker
-          selected={safeParseDate(input.d)}
-          onChange={handleChange}
-          showTimeSelect
-          dateFormat="Pp"
-          className="border p-2 w-full"
-        />
-        <button type="submit" className="bg-blue-500 text-white p-2 rounded">Submit</button>
-      </form>
-      {predictionResult && (
-        <div className="mt-4 p-4 border rounded bg-green-100 text-green-800">
-          <strong>Prediction Result:</strong> {predictionResult}
-        </div>
-      )}
+    <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="w-full max-w-xl flex flex-col gap-4 bg-gray-800 p-6 rounded-lg shadow-lg">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Enter an address"
+            className="border p-2 w-full rounded"
+          />
+          <DatePicker
+            selected={safeParseDate(input.d)}
+            onChange={handleChange}
+            showTimeSelect
+            dateFormat="Pp"
+            className="border p-2 w-full rounded"
+          />
+          <button type="submit" className="bg-blue-500 text-white p-2 rounded">Submit</button>
+        </form>
+        {predictionResult && (
+          <div className="mt-4 p-4 border rounded bg-green-100 text-green-800">
+            <strong>Prediction Result:</strong> {predictionResult}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
