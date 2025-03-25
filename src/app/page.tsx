@@ -36,6 +36,7 @@ export default function App() {
   });
 
   const [predictionResult, setPredictionResult] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -77,6 +78,7 @@ export default function App() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
       const result = await makePrediction(input);
       setPredictionResult(result);
@@ -89,6 +91,8 @@ export default function App() {
       } else {
         alert("Prediction failed: An unknown error occurred");
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -114,8 +118,11 @@ export default function App() {
             dateFormat="Pp"
             className="border p-2 w-full rounded"
           />
-          <button type="submit" className="bg-blue-500 text-white p-2 rounded">Submit</button>
+          <button type="submit" className="bg-blue-500 text-white p-2 rounded" disabled={isLoading}>
+            {isLoading ? "Loading..." : "Submit"}
+          </button>
         </form>
+        {isLoading && <div className="spinner">Loading...</div>}
         {predictionResult && (
           <div className="mt-4 p-4 border rounded bg-green-100 text-green-800">
             <strong>Prediction Result:</strong> {predictionResult}
