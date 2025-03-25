@@ -28,11 +28,13 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 # ENV NEXT_TELEMETRY_DISABLED=1
 
+# Accept build args
 ARG NEXT_PUBLIC_GOOGLE_API_KEY
 ARG NEXT_PUBLIC_MODEL_API
+
+# Use them as environment variables
 ENV NEXT_PUBLIC_GOOGLE_API_KEY=$NEXT_PUBLIC_GOOGLE_API_KEY
 ENV NEXT_PUBLIC_MODEL_API=$NEXT_PUBLIC_MODEL_API
-
 
 RUN \
   if [ -f yarn.lock ]; then yarn run build; \
