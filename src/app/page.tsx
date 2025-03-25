@@ -89,8 +89,6 @@ export default function App() {
     throw new Error("NEXT_PUBLIC_GOOGLE_API_KEY environment variable is not defined");
   }
 
-  console.log("NEXT_PUBLIC_GOOGLE_API_KEY:", apiKey);
-
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: apiKey,
     libraries
@@ -170,7 +168,6 @@ export default function App() {
     try {
       const result = await makePrediction(input);
       setPredictionResult(result);
-      console.log("Prediction result:", result);
     } catch (error) {
       console.error("Prediction error:", error);
       if (error instanceof Error) {
@@ -229,9 +226,6 @@ async function makePrediction(inputData: InputState) {
     throw new Error("NEXT_PUBLIC_MODEL_API environment variable is not defined");
   }
 
-  console.log("NEXT_PUBLIC_MODEL_API:", apiUrl);
-  console.log("Input Data:", inputData);
-
   try {
     const response = await fetch(apiUrl, {
       method: "POST",
@@ -243,7 +237,6 @@ async function makePrediction(inputData: InputState) {
     });
 
     const data = await response.json();
-    console.log("API Response:", data);
 
     if (response.ok) {
       return data.ticketed;
