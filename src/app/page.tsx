@@ -35,8 +35,9 @@ export default function App() {
     y: 0,
   });
 
-  const [predictionResult, setPredictionResult] = useState<string | null>(null);
+  const [predictionResult, setPredictionResult] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -79,11 +80,11 @@ export default function App() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setHasSubmitted(true);
     try {
       const result = await makePrediction(input);
       setPredictionResult(result);
       console.log("Prediction result:", result);
-      alert(`Prediction Result: ${result}`);
     } catch (error) {
       console.error("Prediction error:", error);
       if (error instanceof Error) {
@@ -122,10 +123,11 @@ export default function App() {
             {isLoading ? "Loading..." : "Submit"}
           </button>
         </form>
-        {isLoading && <div className="spinner">Loading...</div>}
-        {predictionResult && (
-          <div className="mt-4 p-4 border rounded bg-green-100 text-green-800">
-            <strong>Prediction Result:</strong> {predictionResult}
+        {!hasSubmitted && <div className="mt-4 text-white">Please select a DC address, date, and time above</div>}
+        {isLoading && <div className="mt-4 text-white">Loading...</div>}
+        {predictionResult !== null && (
+          <div className={`mt-4 p-4 border rounded ${predictionResult === 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+            <strong>Prediction Result:</strong> {predictionResult === 0 ? "You are unlikely to get an expired meter ticket" : "You are likely to get an expired meter ticket"}
           </div>
         )}
       </div>
