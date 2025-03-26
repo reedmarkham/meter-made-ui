@@ -77,7 +77,7 @@ function RenderMap({
 
   useEffect(() => {
     if (isClient && mapRef.current) {
-      // Initialize map using Leaflet
+      // Initialize map using Leaflet only when it's client-side
       const map = L.map(mapRef.current as HTMLElement).setView([38.9072, -77.0369], 12);
 
       // Add tile layer
@@ -100,6 +100,9 @@ function RenderMap({
       };
     }
   }, [isClient, mapData, data]);
+
+  // Prevent map rendering during SSR
+  if (!isClient) return null;
 
   // Return the custom Map component with necessary props
   return <Map isClient={isClient} mapData={mapData} data={data} />;
