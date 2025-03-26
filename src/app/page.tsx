@@ -11,11 +11,11 @@ import "leaflet/dist/leaflet.css";
 import "./styles.css"; // Import the custom CSS file
 import * as topojson from "topojson-client";
 import L from "leaflet";
-import { useMap } from "react-leaflet";
 
 // Dynamically import MapContainer and TileLayer to avoid SSR issues
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
+const useMap = dynamic(() => import('react-leaflet').then((mod) => mod.useMap),  { ssr: false });
 
 const libraries: Library[] = ["places"]; // Keeping the libraries variable for the Google Maps API
 
