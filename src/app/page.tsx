@@ -53,11 +53,12 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
   const lngMin = bounds.getSouthWest().lng;
   const lngMax = bounds.getNorthEast().lng;
 
-  for (let lat = latMin; lat <= latMax; lat += 0.01) {
-    for (let lng = lngMin; lng <= lngMax; lng += 0.01) {
-      if (bounds.contains([lat, lng])) {
-        eligiblePoints.push({ x: lng, y: lat, result: Math.round(Math.random()) });
-      }
+  for (let i = 0; i < SAMPLE_SIZE * 10; i++) {
+    const lat = latMin + Math.random() * (latMax - latMin);
+    const lng = lngMin + Math.random() * (lngMax - lngMin);
+    if (bounds.contains([lat, lng])) {
+      eligiblePoints.push({ x: lng, y: lat, result: Math.round(Math.random()) });
+      if (eligiblePoints.length >= SAMPLE_SIZE * 2) break;
     }
   }
 
@@ -67,6 +68,10 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
 
 function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
   console.log("Sampling points for visualization...");
+  if (eligiblePoints.length === 0) {
+    console.warn("No eligible points available for sampling.");
+    return [];
+  }
   const sampledPoints: Point[] = [];
   while (sampledPoints.length < sampleSize && eligiblePoints.length > 0) {
     const index = Math.floor(Math.random() * eligiblePoints.length);
