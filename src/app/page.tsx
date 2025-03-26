@@ -3,6 +3,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { useLoadScript } from "@react-google-maps/api";
+import { Library } from '@googlemaps/js-api-loader';
 import dynamic from "next/dynamic";
 import { Topology } from "topojson-specification";
 import "leaflet/dist/leaflet.css";
@@ -11,7 +13,7 @@ import * as topojson from "topojson-client";
 import L from "leaflet";
 import { useMap } from 'react-leaflet';
 
-const libraries = ["places"];
+const libraries: Library[] = ["places"]; // Keeping the libraries variable for the Google Maps API
 
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
@@ -83,6 +85,11 @@ export default function App() {
     throw new Error("NEXT_PUBLIC_GOOGLE_API_KEY environment variable is not defined");
   }
 
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: apiKey,
+    libraries // Using the libraries array here for Google Maps
+  });
+
   const [input, setInput] = useState<InputState>({
     d: new Date().toISOString(),
     h: new Date().getHours(),
@@ -103,24 +110,25 @@ export default function App() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // Only run this code on the client-side
+    // Check if the window object is available (client-side only)
     if (typeof window !== "undefined") {
       setIsClient(true);
     }
   }, []);
 
   useEffect(() => {
-    if (!isClient) return; // Wait until we are on the client side
-    if (!window.google) return;
+    if (!isClient || !isLoaded || loadError) return;
 
-    const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, {
+    const options = {
       componentRestrictions: { country: "us" },
       fields: ["address_components", "geometry"],
-    });
+    };
+
+    const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, options);
     autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
 
     return () => window.google.maps.event.clearInstanceListeners(autocomplete);
-  }, [isClient]);
+  }, [isClient, isLoaded, loadError]);
 
   useEffect(() => {
     if (!isClient) return; // Prevent running this on the server-side
@@ -150,7 +158,7 @@ export default function App() {
       .then((us: Topology) => {
         const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features;
         const eligiblePoints = gatherEligiblePoints(mapData);
-        const data = samplePoints(eligiblePoints, 100);
+        const data = samplePoints(eligiblePoints, 50);
         const timestamp = now.toISOString();
         localStorage.setItem("mapData", JSON.stringify(mapData));
         localStorage.setItem("mapDataTimestamp", timestamp);
@@ -159,7 +167,7 @@ export default function App() {
         setCacheTimestamp(timestamp);
         setIsMapLoading(false);
       });
-  }, [isClient]);
+  }, [isClient, isLoaded, loadError]);
 
   const handlePlaceChanged = (autocomplete: google.maps.places.Autocomplete) => {
     const place = autocomplete.getPlace();
