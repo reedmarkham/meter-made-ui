@@ -66,7 +66,7 @@ function RenderMap({ mapData, data }: { mapData: GeoJSON.Feature[], data: Point[
 
     data.forEach(point => {
       L.circle([point.y, point.x], {
-        color: point.result === 0 ? '#56A0D3' : '#003B5C',  // Carolina blue and navy blue
+        color: point.result === 0 ? '#56A0D3' : '#003B5C',  // Lighter blue for negative, darker blue for positive
         radius: 50
       }).addTo(map);
     });
