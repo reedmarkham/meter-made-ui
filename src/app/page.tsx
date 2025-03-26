@@ -42,7 +42,10 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
 
   const { default: L } = await import("leaflet");
   const dcBoundary = mapData.find((feature) => feature.properties?.name === "District of Columbia");
-  if (!dcBoundary) return [];
+  if (!dcBoundary) {
+    console.warn("DC boundary not found.");
+    return [];
+  }
 
   console.log("DC boundary found, processing points...");
 
@@ -53,10 +56,15 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
   const lngMin = bounds.getSouthWest().lng;
   const lngMax = bounds.getNorthEast().lng;
 
+  console.log(`DC Bounds: LatMin=${latMin}, LatMax=${latMax}, LngMin=${lngMin}, LngMax=${lngMax}`);
+
   for (let i = 0; i < SAMPLE_SIZE * 10; i++) {
     const lat = latMin + Math.random() * (latMax - latMin);
     const lng = lngMin + Math.random() * (lngMax - lngMin);
-    if (bounds.contains([lat, lng])) {
+    const isInside = bounds.contains([lat, lng]);
+    console.log(`Generated point: Lat=${lat}, Lng=${lng}, Inside DC=${isInside}`);
+    
+    if (isInside) {
       eligiblePoints.push({ x: lng, y: lat, result: Math.round(Math.random()) });
       if (eligiblePoints.length >= SAMPLE_SIZE * 2) break;
     }
