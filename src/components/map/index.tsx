@@ -32,6 +32,10 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
     }
   }, [isClient, mapData, data]);
 
+  if (!isClient) {
+    return <div>Loading...</div>; // or any placeholder UI
+  }
+
   return <div id="map" style={{ height: "600px" }} />;
 };
 
