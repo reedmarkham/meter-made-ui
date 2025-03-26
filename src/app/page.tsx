@@ -124,6 +124,7 @@ export default function App() {
       fields: ["address_components", "geometry"],
     };
 
+    // Only create the autocomplete instance on the client-side after window is available
     const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, options);
     autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
 
