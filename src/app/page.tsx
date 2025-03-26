@@ -36,6 +36,8 @@ interface Point {
 }
 
 function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolean): Point[] {
+  if (typeof window === 'undefined') return []; 
+  
   if (!isClient) {
     return []; // Return an empty array during SSR
   }
