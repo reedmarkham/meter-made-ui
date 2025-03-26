@@ -117,6 +117,8 @@ export default function App() {
   }, [isLoaded, loadError]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return; // Ensure this code runs only on the client side
+
     const cachedMapData = localStorage.getItem("mapData");
     if (cachedMapData) {
       const mapData = JSON.parse(cachedMapData);
@@ -217,13 +219,16 @@ export default function App() {
         )}
         {isMapLoading && <div className="mt-4 text-white">Loading map...</div>}
         {!isMapLoading && (
-          <MapContainer center={[38.9072, -77.0369]} zoom={12} style={{ height: "600px" }}>
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution="&copy; OpenStreetMap contributors"
-            />
-            <RenderMap mapData={mapData} data={points} />
-          </MapContainer>
+          <>
+            <h2 className="mt-4 text-white">Below is a sample of model predictions for the current date and time:</h2>
+            <MapContainer center={[38.9072, -77.0369]} zoom={12} style={{ height: "600px" }}>
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution="&copy; OpenStreetMap contributors"
+              />
+              <RenderMap mapData={mapData} data={points} />
+            </MapContainer>
+          </>
         )}
       </div>
     </div>
