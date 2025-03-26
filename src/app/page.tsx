@@ -4,19 +4,20 @@ import React, { useEffect, useState, useRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
-import { Library } from '@googlemaps/js-api-loader';
+import { Library } from "@googlemaps/js-api-loader";
 import dynamic from "next/dynamic";
 import { Topology } from "topojson-specification";
 import "leaflet/dist/leaflet.css";
 import "./styles.css"; // Import the custom CSS file
 import * as topojson from "topojson-client";
 import L from "leaflet";
-import { useMap } from 'react-leaflet';
+import { useMap } from "react-leaflet";
+
+// Dynamically import MapContainer and TileLayer to avoid SSR issues
+const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
 
 const libraries: Library[] = ["places"]; // Keeping the libraries variable for the Google Maps API
-
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
 
 interface InputState {
   d: string;
@@ -32,7 +33,7 @@ interface Point {
 }
 
 function gatherEligiblePoints(mapData: GeoJSON.Feature[]): Point[] {
-  const dcBoundary = mapData.find(feature => feature.properties?.name === "District of Columbia");
+  const dcBoundary = mapData.find((feature) => feature.properties?.name === "District of Columbia");
   if (!dcBoundary) return [];
 
   const eligiblePoints: Point[] = [];
@@ -61,17 +62,17 @@ function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
   return sampledPoints;
 }
 
-function RenderMap({ mapData, data }: { mapData: GeoJSON.Feature[], data: Point[] }) {
+function RenderMap({ mapData, data }: { mapData: GeoJSON.Feature[]; data: Point[] }) {
   const map = useMap();
 
   useEffect(() => {
     const bounds = L.geoJSON(mapData).getBounds();
     map.fitBounds(bounds);
 
-    data.forEach(point => {
+    data.forEach((point) => {
       L.circle([point.y, point.x], {
-        color: point.result === 0 ? '#56A0D3' : '#003B5C',  // Lighter blue for negative, darker blue for positive
-        radius: 50
+        color: point.result === 0 ? "#56A0D3" : "#003B5C", // Lighter blue for negative, darker blue for positive
+        radius: 50,
       }).addTo(map);
     });
   }, [map, mapData, data]);
@@ -87,7 +88,7 @@ export default function App() {
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: apiKey,
-    libraries // Using the libraries array here for Google Maps
+    libraries, // Using the libraries array here for Google Maps
   });
 
   const [input, setInput] = useState<InputState>({
@@ -157,7 +158,7 @@ export default function App() {
     }
 
     fetch("https://d3js.org/us-10m.v1.json")
-      .then(response => response.json())
+      .then((response) => response.json())
       .then((us: Topology) => {
         const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features;
         const eligiblePoints = gatherEligiblePoints(mapData);
@@ -188,7 +189,7 @@ export default function App() {
     if (date) {
       setInput((prev) => ({
         ...prev,
-        d: date.toISOString().split('T')[0],
+        d: date.toISOString().split("T")[0],
         h: date.getHours(),
       }));
     }
@@ -222,7 +223,9 @@ export default function App() {
     <div className="flex items-center justify-center min-h-screen bg-gray-900">
       <div className="w-full max-w-xl flex flex-col gap-4 bg-gray-800 p-6 rounded-lg shadow-lg">
         <h1 className="text-center text-white font-semibold">meter-made</h1>
-        <h2 className="text-center text-white">A machine learning model trained on expired meter parking tickets in Washington, DC issued in 2024</h2>
+        <h2 className="text-center text-white">
+          A machine learning model trained on expired meter parking tickets in Washington, DC issued in 2024
+        </h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             ref={inputRef}
@@ -244,11 +247,22 @@ export default function App() {
         {!hasSubmitted && <div className="mt-4 text-white">Please select a DC address, date, and time above</div>}
         {isLoading && <div className="mt-4 text-white">Loading...</div>}
         {predictionResult !== null && (
-          <div className={`mt-4 p-4 border rounded ${predictionResult === 0 ? 'bg-[#56A0D3] text-[#56A0D3]' : 'bg-[#003B5C] text-[#003B5C]'}`}>
-            <strong>Prediction Result:</strong> {predictionResult === 0 ? "You are unlikely to get an expired meter ticket" : "You are likely to get an expired meter ticket"}
+          <div
+            className={`mt-4 p-4 border rounded ${
+              predictionResult === 0 ? "bg-[#56A0D3] text-[#56A0D3]" : "bg-[#003B5C] text-[#003B5C]"
+            }`}
+          >
+            <strong>Prediction Result:</strong>{" "}
+            {predictionResult === 0
+              ? "You are unlikely to get an expired meter ticket"
+              : "You are likely to get an expired meter ticket"}
           </div>
         )}
-        {isMapLoading && <div className="mt-4 text-white">📍 Loading map... (this may take some time, but it will be cached for your next visit) 📍</div>}
+        {isMapLoading && (
+          <div className="mt-4 text-white">
+            📍 Loading map... (this may take some time, but it will be cached for your next visit) 📍
+          </div>
+        )}
         {!isMapLoading && (
           <>
             <h2 className="mt-4 text-white">Below is a sample of model predictions for the current date and time:</h2>
@@ -286,8 +300,8 @@ async function makePrediction(inputData: InputState) {
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
-        "accept": "application/json",
-        "Content-Type": "application/json"
+        accept: "application/json",
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(inputData),
     });
