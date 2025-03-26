@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
@@ -16,8 +16,8 @@ import L from "leaflet";
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
 
-// Dynamically import your custom map component
-const Map = dynamic(() => import('@/components/map'), { ssr: false });
+// Dynamically import custom Map component
+const Map = dynamic(() => import('@/components/map/'), { ssr: false });
 
 const libraries: Library[] = ["places"];
 
@@ -64,17 +64,6 @@ function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
   return sampledPoints;
 }
 
-function makePrediction(input: InputState): Promise<number> {
-  return new Promise((resolve, reject) => {
-    // Simulate an API call for prediction (this is where the model prediction logic will go)
-    setTimeout(() => {
-      // Randomly predict 0 or 1 (you would replace this with your actual prediction logic)
-      const prediction = Math.random() > 0.5 ? 1 : 0;
-      resolve(prediction);
-    }, 1000);
-  });
-}
-
 function RenderMap({
   isClient,
   mapData,
@@ -84,11 +73,36 @@ function RenderMap({
   mapData: GeoJSON.Feature[];
   data: Point[];
 }) {
-  return (
-    <div style={{ height: "600px" }}>
-      <Map isClient={isClient} mapData={mapData} data={data} />
-    </div>
-  );
+  const mapRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (isClient && mapRef.current) {
+      // Initialize map using Leaflet
+      const map = L.map(mapRef.current).setView([38.9072, -77.0369], 12);
+
+      // Add tile layer
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+      const bounds = L.geoJSON(mapData).getBounds();
+      map.fitBounds(bounds);
+
+      // Add circles for each point
+      data.forEach((point) => {
+        L.circle([point.y, point.x], {
+          color: point.result === 0 ? "#56A0D3" : "#003B5C", // Lighter blue for negative, darker blue for positive
+          radius: 50,
+        }).addTo(map);
+      });
+
+      // Cleanup on component unmount
+      return () => {
+        map.remove();
+      };
+    }
+  }, [isClient, mapData, data]);
+
+  // Return the custom Map component with necessary props
+  return <Map isClient={isClient} mapData={mapData} data={data} />;
 }
 
 export default function App() {
@@ -297,4 +311,33 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+async function makePrediction(inputData: InputState) {
+  const apiUrl = process.env.NEXT_PUBLIC_MODEL_API;
+  if (!apiUrl) {
+    throw new Error("NEXT_PUBLIC_MODEL_API environment variable is not defined");
+  }
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(inputData),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      return data.ticketed;
+    } else {
+      throw new Error(data.error || "Prediction failed");
+    }
+  } catch (error) {
+    console.error("Prediction error:", error);
+    throw error;
+  }
 }
