@@ -158,28 +158,35 @@ export default function App() {
   }, [isClient, isLoaded, loadError]);
 
   useEffect(() => {
-    if (!isClient) return;
-
+    if (!isClient || typeof localStorage === "undefined") return;
+  
     const cachedMapData = localStorage.getItem("mapData");
     const cachedTimestamp = localStorage.getItem("mapDataTimestamp");
     const now = new Date();
-
+  
+    // If cache is available and valid
     if (cachedMapData && cachedTimestamp) {
       const cachedDate = new Date(cachedTimestamp);
       const hoursDifference = (now.getTime() - cachedDate.getTime()) / (1000 * 60 * 60);
-
+  
+      // Only use cache if it's less than 3 hours old
       if (hoursDifference < 3) {
-        const mapData = JSON.parse(cachedMapData);
-        const eligiblePoints = gatherEligiblePoints(mapData);
-        const data = samplePoints(eligiblePoints, 50);
-        setMapData(mapData);
-        setPoints(data);
-        setCacheTimestamp(cachedTimestamp);
-        setIsMapLoading(false);
-        return;
+        try {
+          const mapData = JSON.parse(cachedMapData);
+          const eligiblePoints = gatherEligiblePoints(mapData);
+          const data = samplePoints(eligiblePoints, 50);
+          setMapData(mapData);
+          setPoints(data);
+          setCacheTimestamp(cachedTimestamp);
+          setIsMapLoading(false);
+          return; // Exit if cache is valid
+        } catch (error) {
+          console.error("Error parsing cached map data:", error);
+        }
       }
     }
-
+  
+    // Fetch new map data if no valid cache is available
     fetch("https://d3js.org/us-10m.v1.json")
       .then((response) => response.json())
       .then((us: Topology) => {
@@ -187,14 +194,23 @@ export default function App() {
         const eligiblePoints = gatherEligiblePoints(mapData);
         const data = samplePoints(eligiblePoints, 50);
         const timestamp = now.toISOString();
+        
+        // Store in localStorage for future use
         localStorage.setItem("mapData", JSON.stringify(mapData));
         localStorage.setItem("mapDataTimestamp", timestamp);
+  
         setMapData(mapData);
         setPoints(data);
         setCacheTimestamp(timestamp);
         setIsMapLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error fetching map data:", error);
+        // Handle fetch error (show a fallback message or retry logic)
+        setIsMapLoading(false);
       });
-  }, [isClient, isLoaded, loadError]);
+  }, [isClient]);
+  
 
   const handlePlaceChanged = (autocomplete: google.maps.places.Autocomplete) => {
     const place = autocomplete.getPlace();
