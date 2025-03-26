@@ -64,9 +64,17 @@ function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
 
 function RenderMap({ mapData, data }: { mapData: GeoJSON.Feature[]; data: Point[] }) {
   const map = useMap();
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (map) {
+    // Check if the window object is available (client-side only)
+    if (typeof window !== "undefined") {
+      setIsClient(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isClient && map) {
       const bounds = L.geoJSON(mapData).getBounds();
       map.fitBounds(bounds);
 
@@ -77,7 +85,7 @@ function RenderMap({ mapData, data }: { mapData: GeoJSON.Feature[]; data: Point[
         }).addTo(map);
       });
     }
-  }, [map, mapData, data]);
+  }, [isClient, map, mapData, data]);
 
   return null;
 }
