@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import dynamic from "next/dynamic";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
@@ -50,12 +49,7 @@ export default function App() {
       fields: ["address_components", "geometry"],
     };
     const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, options);
-    autocomplete.addListener("place_changed", () => {
-      const place = autocomplete.getPlace();
-      if (!place || !place.geometry || !place.geometry.location) return;
-      const location = place.geometry.location;
-      setInput(prev => ({ ...prev, x: location.lat(), y: location.lng() }));
-    });
+    autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
     return () => window.google.maps.event.clearInstanceListeners(autocomplete);
   }, [isLoaded, loadError]);
 
