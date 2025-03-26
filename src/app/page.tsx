@@ -6,14 +6,17 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
 import { Library } from '@googlemaps/js-api-loader';
 import dynamic from "next/dynamic";
+import { Topology } from "topojson-specification";
 import "leaflet/dist/leaflet.css";
 import "./styles.css"; // Import the custom CSS file
+import * as topojson from "topojson-client";
+import L from "leaflet";
+import { useMap } from 'react-leaflet';
 
 const libraries: Library[] = ["places"];
 
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-const useMap = dynamic(() => import('react-leaflet').then(mod => mod.useMap), { ssr: false });
 
 interface InputState {
   d: string;
