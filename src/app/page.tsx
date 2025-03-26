@@ -20,6 +20,7 @@ const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLa
 const Map = dynamic(() => import('@/components/map/'), { ssr: false });
 
 const libraries: Library[] = ["places"];
+const SAMPLE_SIZE = 50;
 
 interface InputState {
   d: string;
@@ -186,7 +187,7 @@ export default function App() {
         try {
           const mapData = JSON.parse(cachedMapData);
           const eligiblePoints = gatherEligiblePoints(mapData, isClient);
-          const data = samplePoints(eligiblePoints, 50);
+          const data = samplePoints(eligiblePoints, SAMPLE_SIZE);
           setMapData(mapData);
           setPoints(data);
           setCacheTimestamp(cachedTimestamp);
@@ -204,7 +205,7 @@ export default function App() {
       .then((us: Topology) => {
         const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features;
         const eligiblePoints = gatherEligiblePoints(mapData, isClient);
-        const data = samplePoints(eligiblePoints, 50);
+        const data = samplePoints(eligiblePoints, SAMPLE_SIZE);
         const timestamp = now.toISOString();
         
         // Store in localStorage for future use
