@@ -66,15 +66,17 @@ function RenderMap({ mapData, data }: { mapData: GeoJSON.Feature[]; data: Point[
   const map = useMap();
 
   useEffect(() => {
-    const bounds = L.geoJSON(mapData).getBounds();
-    map.fitBounds(bounds);
+    if (map) {
+      const bounds = L.geoJSON(mapData).getBounds();
+      map.fitBounds(bounds);
 
-    data.forEach((point) => {
-      L.circle([point.y, point.x], {
-        color: point.result === 0 ? "#56A0D3" : "#003B5C", // Lighter blue for negative, darker blue for positive
-        radius: 50,
-      }).addTo(map);
-    });
+      data.forEach((point) => {
+        L.circle([point.y, point.x], {
+          color: point.result === 0 ? "#56A0D3" : "#003B5C", // Lighter blue for negative, darker blue for positive
+          radius: 50,
+        }).addTo(map);
+      });
+    }
   }, [map, mapData, data]);
 
   return null;
@@ -118,7 +120,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!isClient || !isLoaded || loadError) return;
+    if (!isClient || !isLoaded || loadError || !inputRef.current) return;
 
     const options = {
       componentRestrictions: { country: "us" },
@@ -126,12 +128,10 @@ export default function App() {
     };
 
     // Only initialize Google Maps API and autocomplete if window is available
-    if (typeof window !== "undefined") {
-      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, options);
-      autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
+    const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, options);
+    autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
 
-      return () => window.google.maps.event.clearInstanceListeners(autocomplete);
-    }
+    return () => window.google.maps.event.clearInstanceListeners(autocomplete);
   }, [isClient, isLoaded, loadError]);
 
   useEffect(() => {
