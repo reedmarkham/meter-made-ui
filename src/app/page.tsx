@@ -73,12 +73,12 @@ function RenderMap({
   mapData: GeoJSON.Feature[];
   data: Point[];
 }) {
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (isClient && mapRef.current) {
       // Initialize map using Leaflet
-      const map = L.map(mapRef.current).setView([38.9072, -77.0369], 12);
+      const map = L.map(mapRef.current as HTMLElement).setView([38.9072, -77.0369], 12);
 
       // Add tile layer
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
