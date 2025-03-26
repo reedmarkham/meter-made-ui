@@ -34,24 +34,33 @@ interface Point {
   result: number;
 }
 
-function gatherEligiblePoints(mapData: GeoJSON.Feature[]): Point[] {
+function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolean): Point[] {
+  if (!isClient) {
+    return []; // Return an empty array during SSR
+  }
+
   const dcBoundary = mapData.find((feature) => feature.properties?.name === "District of Columbia");
   if (!dcBoundary) return [];
 
   const eligiblePoints: Point[] = [];
-  const bounds = L.geoJSON(dcBoundary).getBounds();
-  const latMin = bounds.getSouthWest().lat;
-  const latMax = bounds.getNorthEast().lat;
-  const lngMin = bounds.getSouthWest().lng;
-  const lngMax = bounds.getNorthEast().lng;
+  
+  // Ensure Leaflet-related code only runs on the client
+  if (isClient) {
+    const bounds = L.geoJSON(dcBoundary).getBounds();
+    const latMin = bounds.getSouthWest().lat;
+    const latMax = bounds.getNorthEast().lat;
+    const lngMin = bounds.getSouthWest().lng;
+    const lngMax = bounds.getNorthEast().lng;
 
-  for (let lat = latMin; lat <= latMax; lat += 0.01) {
-    for (let lng = lngMin; lng <= lngMax; lng += 0.01) {
-      if (bounds.contains([lat, lng])) {
-        eligiblePoints.push({ x: lng, y: lat, result: Math.round(Math.random()) });
+    for (let lat = latMin; lat <= latMax; lat += 0.01) {
+      for (let lng = lngMin; lng <= lngMax; lng += 0.01) {
+        if (bounds.contains([lat, lng])) {
+          eligiblePoints.push({ x: lng, y: lat, result: Math.round(Math.random()) });
+        }
       }
     }
   }
+
   return eligiblePoints;
 }
 
@@ -176,7 +185,7 @@ export default function App() {
       if (hoursDifference < 3) {
         try {
           const mapData = JSON.parse(cachedMapData);
-          const eligiblePoints = gatherEligiblePoints(mapData);
+          const eligiblePoints = gatherEligiblePoints(mapData, isClient);
           const data = samplePoints(eligiblePoints, 50);
           setMapData(mapData);
           setPoints(data);
@@ -194,7 +203,7 @@ export default function App() {
       .then((response) => response.json())
       .then((us: Topology) => {
         const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features;
-        const eligiblePoints = gatherEligiblePoints(mapData);
+        const eligiblePoints = gatherEligiblePoints(mapData, isClient);
         const data = samplePoints(eligiblePoints, 50);
         const timestamp = now.toISOString();
         
