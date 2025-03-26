@@ -124,10 +124,13 @@ export default function App() {
       fields: ["address_components", "geometry"],
     };
 
-    const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, options);
-    autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
+    // Only initialize Google Maps API and autocomplete if window is available
+    if (typeof window !== "undefined") {
+      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, options);
+      autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
 
-    return () => window.google.maps.event.clearInstanceListeners(autocomplete);
+      return () => window.google.maps.event.clearInstanceListeners(autocomplete);
+    }
   }, [isClient, isLoaded, loadError]);
 
   useEffect(() => {
