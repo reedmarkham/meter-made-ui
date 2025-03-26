@@ -99,45 +99,61 @@ export default function App() {
   const [isMapLoading, setIsMapLoading] = useState<boolean>(true);
   const [mapData, setMapData] = useState<GeoJSON.Feature[]>([]);
   const [points, setPoints] = useState<Point[]>([]);
+  const [cacheTimestamp, setCacheTimestamp] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!isLoaded || loadError) return;
+    if (typeof window === 'undefined' || !isLoaded || loadError) return;
 
     const options = {
       componentRestrictions: { country: "us" },
       fields: ["address_components", "geometry"],
     };
 
-    const autocomplete = new google.maps.places.Autocomplete(inputRef.current!, options);
+    const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, options);
     autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
 
-    return () => google.maps.event.clearInstanceListeners(autocomplete);
+    return () => window.google.maps.event.clearInstanceListeners(autocomplete);
   }, [isLoaded, loadError]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const cachedMapData = localStorage.getItem("mapData");
-    if (cachedMapData) {
-      const mapData = JSON.parse(cachedMapData);
-      const eligiblePoints = gatherEligiblePoints(mapData);
-      const data = samplePoints(eligiblePoints, 100);
-      setMapData(mapData);
-      setPoints(data);
-      setIsMapLoading(false);
-    } else {
-      fetch("https://d3js.org/us-10m.v1.json")
-        .then(response => response.json())
-        .then((us: Topology) => {
-          const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features;
-          localStorage.setItem("mapData", JSON.stringify(mapData));
-          const eligiblePoints = gatherEligiblePoints(mapData);
-          const data = samplePoints(eligiblePoints, 100);
-          setMapData(mapData);
-          setPoints(data);
-          setIsMapLoading(false);
-        });
+    const cachedTimestamp = localStorage.getItem("mapDataTimestamp");
+    const now = new Date();
+
+    if (cachedMapData && cachedTimestamp) {
+      const cachedDate = new Date(cachedTimestamp);
+      const hoursDifference = (now.getTime() - cachedDate.getTime()) / (1000 * 60 * 60);
+
+      if (hoursDifference < 3) {
+        const mapData = JSON.parse(cachedMapData);
+        const eligiblePoints = gatherEligiblePoints(mapData);
+        const data = samplePoints(eligiblePoints, 100);
+        setMapData(mapData);
+        setPoints(data);
+        setCacheTimestamp(cachedTimestamp);
+        setIsMapLoading(false);
+        return;
+      }
     }
+
+    fetch("https://d3js.org/us-10m.v1.json")
+      .then(response => response.json())
+      .then((us: Topology) => {
+        const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features;
+        const eligiblePoints = gatherEligiblePoints(mapData);
+        const data = samplePoints(eligiblePoints, 100);
+        const timestamp = now.toISOString();
+        localStorage.setItem("mapData", JSON.stringify(mapData));
+        localStorage.setItem("mapDataTimestamp", timestamp);
+        setMapData(mapData);
+        setPoints(data);
+        setCacheTimestamp(timestamp);
+        setIsMapLoading(false);
+      });
   }, [isLoaded, loadError]);
 
   const handlePlaceChanged = (autocomplete: google.maps.places.Autocomplete) => {
@@ -225,6 +241,11 @@ export default function App() {
               />
               <RenderMap mapData={mapData} data={points} />
             </MapContainer>
+            {cacheTimestamp && (
+              <div className="mt-4 text-white">
+                <strong>Map last cached at:</strong> {new Date(cacheTimestamp).toLocaleString()}
+              </div>
+            )}
           </>
         )}
       </div>
