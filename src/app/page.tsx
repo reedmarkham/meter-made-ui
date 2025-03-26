@@ -41,7 +41,7 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
   console.log("Gathering eligible points within DC boundaries...");
 
   const { default: L } = await import("leaflet");
-  const dcBoundary = mapData
+  const dcBoundary = mapData;
   if (!dcBoundary) {
     console.warn("DC map data not found.");
     return [];
@@ -211,12 +211,11 @@ export default function App() {
     
       // Fetch new map data if no valid cache is available
       fetch("https://d3js.org/us-10m.v1.json")
-          .then((response) => response.json())
-          .then(async (us: Topology) => {
-            const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features.filter(
-              (d) => d.id === 11
-            );
-          
+        .then((response) => response.json())
+        .then(async (us: Topology) => {
+          const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features.filter(
+            (d) => d.id === "11"
+          );
           const eligiblePoints = await gatherEligiblePoints(mapData, isClient);
           const data = samplePoints(eligiblePoints, SAMPLE_SIZE);
           const timestamp = now.toISOString();

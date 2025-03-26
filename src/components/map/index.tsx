@@ -19,59 +19,56 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
 
   useEffect(() => {
     if (isClient && typeof window !== "undefined") {
-      console.log("Importing Leaflet...");
       import("leaflet").then((leaflet) => {
-        console.log("Leaflet imported.");
         setL(leaflet);
       });
     }
   }, [isClient]);
 
   useEffect(() => {
-    if (L && !mapRef.current) {
-      console.log("Initializing map...");
-      mapRef.current = L.map("map").setView([38.9072, -77.0369], 12);
-      console.log("Map initialized.");
+    if (!L) return;
 
+    // Only initialize if map doesn't already exist
+    if (!mapRef.current) {
+      console.log("Initializing map...");
+      mapRef.current = L.map("bottomMap").setView([38.9072, -77.0369], 12);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(mapRef.current);
-      console.log("Tile layer added to map.");
+      console.log("Map initialized.");
     }
 
-    if (L && mapRef.current) {
+    if (mapRef.current) {
       const map = mapRef.current;
-      console.log("Clearing existing layers...");
-      
-      // Clear existing layers (except the base tile layer)
+
+      // Remove only data layers, keep the tile layer
       map.eachLayer((layer) => {
         if (!(layer instanceof L.TileLayer)) {
           map.removeLayer(layer);
         }
       });
-      console.log("Existing layers cleared.");
 
+      // Fit map to data bounds
       if (mapData.length > 0) {
-        console.log("Setting map bounds...");
         const bounds = L.geoJSON(mapData).getBounds();
         map.fitBounds(bounds);
-        console.log("Map bounds set.");
       }
 
-      console.log("Adding points to map...");
+      // Add new points
       data.forEach((point) => {
         L.circle([point.y, point.x], {
           color: point.result === 0 ? "#56A0D3" : "#003B5C",
           radius: 50,
         }).addTo(map);
       });
-      console.log("Points added to map.");
     }
 
     return () => {
+      // Don't remove the map entirely; just clear layers
       if (mapRef.current) {
-        console.log("Removing map...");
-        mapRef.current.remove();
-        mapRef.current = null;
-        console.log("Map removed.");
+        mapRef.current.eachLayer((layer) => {
+          if (!(layer instanceof L.TileLayer)) {
+            mapRef.current?.removeLayer(layer);
+          }
+        });
       }
     };
   }, [L, mapData, data]);
@@ -80,7 +77,7 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
     return <div>Loading...</div>;
   }
 
-  return <div id="map" style={{ height: "600px" }} />;
+  return <div id="bottomMap" style={{ height: "600px" }} />;
 };
 
 export default Map;
