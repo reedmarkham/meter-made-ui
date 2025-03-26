@@ -10,9 +10,9 @@ import { Topology } from "topojson-specification";
 import "leaflet/dist/leaflet.css";
 import "./styles.css";
 import * as topojson from "topojson-client";
-import L from "leaflet";
 
 // Dynamically import Leaflet components to avoid SSR issues
+const L = typeof window !== "undefined" ? require("leaflet") : null;
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
 
@@ -152,9 +152,7 @@ export default function App() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsClient(true);
-    }
+    setIsClient(typeof window !== "undefined");
   }, []);
 
   useEffect(() => {

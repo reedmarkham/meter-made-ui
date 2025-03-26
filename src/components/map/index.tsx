@@ -1,5 +1,4 @@
-import React, { useEffect } from "react";
-import L from "leaflet";
+import React, { useEffect, useState } from "react";
 
 interface Point {
   x: number;
@@ -14,8 +13,18 @@ interface MapProps {
 }
 
 const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
+  const [L, setL] = useState<any>(null);
+
   useEffect(() => {
     if (isClient && typeof window !== "undefined") {
+      import("leaflet").then((leaflet) => {
+        setL(leaflet);
+      });
+    }
+  }, [isClient]);
+
+  useEffect(() => {
+    if (L) {
       const map = L.map("map").setView([38.9072, -77.0369], 12);
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
@@ -25,15 +34,15 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
 
       data.forEach((point) => {
         L.circle([point.y, point.x], {
-          color: point.result === 0 ? "#56A0D3" : "#003B5C", // Lighter blue for negative, darker blue for positive
+          color: point.result === 0 ? "#56A0D3" : "#003B5C",
           radius: 50,
         }).addTo(map);
       });
     }
-  }, [isClient, mapData, data]);
+  }, [L, mapData, data]);
 
   if (!isClient || typeof window === "undefined") {
-    return <div>Loading...</div>; // or any placeholder UI
+    return <div>Loading...</div>;
   }
 
   return <div id="map" style={{ height: "600px" }} />;
