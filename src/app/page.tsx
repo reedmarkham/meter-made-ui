@@ -3,8 +3,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { useLoadScript } from "@react-google-maps/api";
-import { Library } from '@googlemaps/js-api-loader';
 import dynamic from "next/dynamic";
 import { Topology } from "topojson-specification";
 import "leaflet/dist/leaflet.css";
@@ -13,7 +11,7 @@ import * as topojson from "topojson-client";
 import L from "leaflet";
 import { useMap } from 'react-leaflet';
 
-const libraries: Library[] = ["places"];
+const libraries = ["places"];
 
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
@@ -85,11 +83,6 @@ export default function App() {
     throw new Error("NEXT_PUBLIC_GOOGLE_API_KEY environment variable is not defined");
   }
 
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: apiKey,
-    libraries
-  });
-
   const [input, setInput] = useState<InputState>({
     d: new Date().toISOString(),
     h: new Date().getHours(),
@@ -110,25 +103,24 @@ export default function App() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // Check if the window object is available (client-side only)
+    // Only run this code on the client-side
     if (typeof window !== "undefined") {
       setIsClient(true);
     }
   }, []);
 
   useEffect(() => {
-    if (!isClient || !isLoaded || loadError) return;
+    if (!isClient) return; // Wait until we are on the client side
+    if (!window.google) return;
 
-    const options = {
+    const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, {
       componentRestrictions: { country: "us" },
       fields: ["address_components", "geometry"],
-    };
-
-    const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, options);
+    });
     autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
 
     return () => window.google.maps.event.clearInstanceListeners(autocomplete);
-  }, [isClient, isLoaded, loadError]);
+  }, [isClient]);
 
   useEffect(() => {
     if (!isClient) return; // Prevent running this on the server-side
@@ -167,7 +159,7 @@ export default function App() {
         setCacheTimestamp(timestamp);
         setIsMapLoading(false);
       });
-  }, [isClient, isLoaded, loadError]);
+  }, [isClient]);
 
   const handlePlaceChanged = (autocomplete: google.maps.places.Autocomplete) => {
     const place = autocomplete.getPlace();
