@@ -98,7 +98,8 @@ function RenderMap({
         data.forEach((point) => {
           L.circle([point.y, point.x], {
             color: point.result === 0 ? "#56A0D3" : "#003B5C", // Lighter blue for negative, darker blue for positive
-            radius: 100,
+            fillOpacity: 0.6,
+            radius: 200,
           }).addTo(map);
         });
 
