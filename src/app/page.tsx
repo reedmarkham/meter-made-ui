@@ -147,7 +147,7 @@ export default function App() {
       if (hoursDifference < 3) {
         const mapData = JSON.parse(cachedMapData);
         const eligiblePoints = gatherEligiblePoints(mapData);
-        const data = samplePoints(eligiblePoints, 100);
+        const data = samplePoints(eligiblePoints, 50);
         setMapData(mapData);
         setPoints(data);
         setCacheTimestamp(cachedTimestamp);
