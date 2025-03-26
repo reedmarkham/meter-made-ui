@@ -216,14 +216,13 @@ export default function App() {
           </div>
         )}
         {isMapLoading && <div className="mt-4 text-white">Loading map...</div>}
-        {isMapLoading && <div className="mt-4 text-white">Loading map...</div>}
         {!isMapLoading && (
           <MapContainer center={[38.9072, -77.0369]} zoom={12} style={{ height: "600px" }}>
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="&copy; OpenStreetMap contributors"
-          />
-          <RenderMap mapData={mapData} data={points} />
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution="&copy; OpenStreetMap contributors"
+            />
+            <RenderMap mapData={mapData} data={points} />
           </MapContainer>
         )}
       </div>
