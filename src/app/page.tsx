@@ -66,7 +66,7 @@ function RenderMap({ mapData, data }: { mapData: GeoJSON.Feature[], data: Point[
 
     data.forEach(point => {
       L.circle([point.y, point.x], {
-        color: point.result === 0 ? 'green' : 'red',
+        color: point.result === 0 ? '#56A0D3' : '#003B5C',  // Carolina blue and navy blue
         radius: 50
       }).addTo(map);
     });
@@ -103,8 +103,17 @@ export default function App() {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [isClient, setIsClient] = useState(false);
+
   useEffect(() => {
-    if (typeof window === 'undefined' || !isLoaded || loadError) return;
+    // Check if the window object is available (client-side only)
+    if (typeof window !== "undefined") {
+      setIsClient(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isClient || !isLoaded || loadError) return;
 
     const options = {
       componentRestrictions: { country: "us" },
@@ -115,10 +124,10 @@ export default function App() {
     autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
 
     return () => window.google.maps.event.clearInstanceListeners(autocomplete);
-  }, [isLoaded, loadError]);
+  }, [isClient, isLoaded, loadError]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return; // Prevent running this on the server-side
+    if (!isClient) return; // Prevent running this on the server-side
 
     const cachedMapData = localStorage.getItem("mapData");
     const cachedTimestamp = localStorage.getItem("mapDataTimestamp");
@@ -154,7 +163,7 @@ export default function App() {
         setCacheTimestamp(timestamp);
         setIsMapLoading(false);
       });
-  }, [isLoaded, loadError]);
+  }, [isClient, isLoaded, loadError]);
 
   const handlePlaceChanged = (autocomplete: google.maps.places.Autocomplete) => {
     const place = autocomplete.getPlace();
@@ -228,7 +237,7 @@ export default function App() {
         {!hasSubmitted && <div className="mt-4 text-white">Please select a DC address, date, and time above</div>}
         {isLoading && <div className="mt-4 text-white">Loading...</div>}
         {predictionResult !== null && (
-          <div className={`mt-4 p-4 border rounded ${predictionResult === 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          <div className={`mt-4 p-4 border rounded ${predictionResult === 0 ? 'bg-[#56A0D3] text-[#56A0D3]' : 'bg-[#003B5C] text-[#003B5C]'}`}>
             <strong>Prediction Result:</strong> {predictionResult === 0 ? "You are unlikely to get an expired meter ticket" : "You are likely to get an expired meter ticket"}
           </div>
         )}
