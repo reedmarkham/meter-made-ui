@@ -41,7 +41,7 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
   console.log("Gathering eligible points within DC boundaries...");
 
   const { default: L } = await import("leaflet");
-  const dcBoundary = mapData.find((feature) => feature.properties?.name === "District of Columbia");
+  const dcBoundary = mapData.find((feature) => feature.properties?.id === 11);
   if (!dcBoundary) {
     console.warn("DC boundary not found.");
     return [];
