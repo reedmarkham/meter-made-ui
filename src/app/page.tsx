@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
@@ -111,6 +111,14 @@ export default function App() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [isClient, setIsClient] = useState(false);
+
+  const Map = useMemo(() => dynamic(
+    () => import('@/components/map/'),
+    {
+      loading: () => <p>A map is loading</p>,
+      ssr: false
+    }
+  ), []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
