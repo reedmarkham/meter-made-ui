@@ -20,6 +20,7 @@ const Map = dynamic(() => import('@/components/map/'), { ssr: false });
 
 const libraries: Library[] = ["places"];
 const SAMPLE_SIZE = 50;
+const DC_COORDINATES: [number, number] = [38.9072, -77.0369]; // Coordinates for Washington, DC
 
 interface InputState {
   d: string;
@@ -85,7 +86,7 @@ function RenderMap({
     if (isClient && mapRef.current) {
       // Dynamically import Leaflet to avoid SSR issues
       import("leaflet").then((L) => {
-        const map = L.map(mapRef.current as HTMLElement).setView([38.9072, -77.0369], 12);
+        const map = L.map(mapRef.current as HTMLElement).setView(DC_COORDINATES, 12);
 
         // Add tile layer
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
@@ -97,7 +98,7 @@ function RenderMap({
         data.forEach((point) => {
           L.circle([point.y, point.x], {
             color: point.result === 0 ? "#56A0D3" : "#003B5C", // Lighter blue for negative, darker blue for positive
-            radius: 50,
+            radius: 100,
           }).addTo(map);
         });
 
@@ -335,7 +336,7 @@ export default function App() {
         {!isMapLoading && (
           <>
             <h2 className="mt-4 text-white">Below is a sample of model predictions for the current date and time:</h2>
-            <MapContainer center={[38.9072, -77.0369]} zoom={12} style={{ height: "600px" }}>
+            <MapContainer center={DC_COORDINATES} zoom={12} style={{ height: "600px" }}>
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution="&copy; OpenStreetMap contributors"

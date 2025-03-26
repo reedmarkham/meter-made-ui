@@ -26,19 +26,32 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
 
   useEffect(() => {
     if (L) {
-      const map = L.map("map").setView([38.9072, -77.0369], 12);
-
+      let map = L.map("map");
+  
+      // Prevent duplicate maps
+      if (map) {
+        map.remove();
+      }
+  
+      map = L.map("map").setView([38.9072, -77.0369], 12);
+  
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
-      const bounds = L.geoJSON(mapData).getBounds();
-      map.fitBounds(bounds);
-
+  
+      if (mapData.length > 0) {
+        const bounds = L.geoJSON(mapData).getBounds();
+        map.fitBounds(bounds);
+      }
+  
       data.forEach((point) => {
         L.circle([point.y, point.x], {
           color: point.result === 0 ? "#56A0D3" : "#003B5C",
           radius: 50,
         }).addTo(map);
       });
+  
+      return () => {
+        map.remove(); // Cleanup on unmount
+      };
     }
   }, [L, mapData, data]);
 
