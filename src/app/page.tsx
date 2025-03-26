@@ -143,16 +143,16 @@ export default function App() {
 
   useEffect(() => {
     if (!isClient || !isLoaded || loadError || !inputRef.current) return;
-
+  
     const options = {
       componentRestrictions: { country: "us" },
       fields: ["address_components", "geometry"],
     };
-
-    if (typeof window !== "undefined") {
+  
+    if (typeof window !== "undefined" && window.google?.maps) {
       const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, options);
       autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
-
+  
       return () => window.google.maps.event.clearInstanceListeners(autocomplete);
     }
   }, [isClient, isLoaded, loadError]);
