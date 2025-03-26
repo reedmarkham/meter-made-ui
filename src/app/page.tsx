@@ -145,6 +145,7 @@ export default function App() {
   const [mapData, setMapData] = useState<GeoJSON.Feature[]>([]);
   const [points, setPoints] = useState<Point[]>([]);
   const [cacheTimestamp, setCacheTimestamp] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -232,6 +233,17 @@ export default function App() {
     if (!place || !place.geometry || !place.geometry.location) return;
 
     const location = place.geometry.location;
+    const addressComponents = place.address_components;
+    const isDC = addressComponents?.some((component) =>
+      component.short_name === "DC" || component.long_name === "District of Columbia"
+    );
+
+    if (!isDC) {
+      setError("Please select an address in the District of Columbia.");
+      return;
+    }
+
+    setError(null);
     setInput((prev) => ({
       ...prev,
       x: location.lat(),
@@ -251,6 +263,10 @@ export default function App() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (error) {
+      alert(error);
+      return;
+    }
     setIsLoading(true);
     setHasSubmitted(true);
     try {
@@ -298,6 +314,7 @@ export default function App() {
             {isLoading ? "Loading..." : "Submit"}
           </button>
         </form>
+        {error && <div className="mt-4 text-red-500">{error}</div>}
         {!hasSubmitted && <div className="mt-4 text-white">Please select a DC address, date, and time above</div>}
         {isLoading && <div className="mt-4 text-white">Loading...</div>}
         {predictionResult !== null && (

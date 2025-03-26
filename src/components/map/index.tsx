@@ -15,7 +15,7 @@ interface MapProps {
 
 const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
   useEffect(() => {
-    if (isClient) {
+    if (isClient && typeof window !== "undefined") {
       const map = L.map("map").setView([38.9072, -77.0369], 12);
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
