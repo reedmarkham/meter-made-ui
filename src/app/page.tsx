@@ -5,10 +5,12 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
 import { Library } from '@googlemaps/js-api-loader';
-import * as d3 from "d3";
-import * as topojson from "topojson-client";
-import { Topology } from "topojson-specification";
+import { MapContainer, TileLayer, Circle, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import "leaflet/dist/leaflet.css";
 import "./styles.css"; // Import the custom CSS file
+import { Topology } from "topojson-specification";
+import * as topojson from "topojson-client";
 
 const libraries: Library[] = ["places"];
 
@@ -25,19 +27,21 @@ interface Point {
   result: number;
 }
 
-function gatherEligiblePoints(mapData: GeoJSON.Feature[], projection: d3.GeoProjection, width: number, height: number): Point[] {
+function gatherEligiblePoints(mapData: GeoJSON.Feature[]): Point[] {
   const dcBoundary = mapData.find(feature => feature.properties?.name === "District of Columbia");
   if (!dcBoundary) return [];
 
   const eligiblePoints: Point[] = [];
-  for (let x = 0; x < width; x += 10) {
-    for (let y = 0; y < height; y += 10) {
-      const invertedPoint = projection.invert ? projection.invert([x, y]) : null;
-      if (invertedPoint) {
-        const [longitude, latitude] = invertedPoint;
-        if (d3.geoContains(dcBoundary, [longitude, latitude])) {
-          eligiblePoints.push({ x, y, result: Math.round(Math.random()) });
-        }
+  const bounds = L.geoJSON(dcBoundary).getBounds();
+  const latMin = bounds.getSouthWest().lat;
+  const latMax = bounds.getNorthEast().lat;
+  const lngMin = bounds.getSouthWest().lng;
+  const lngMax = bounds.getNorthEast().lng;
+
+  for (let lat = latMin; lat <= latMax; lat += 0.01) {
+    for (let lng = lngMin; lng <= lngMax; lng += 0.01) {
+      if (bounds.contains([lat, lng])) {
+        eligiblePoints.push({ x: lng, y: lat, result: Math.round(Math.random()) });
       }
     }
   }
@@ -53,40 +57,22 @@ function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
   return sampledPoints;
 }
 
-function renderMap(mapData: GeoJSON.Feature[], mapRef: React.RefObject<HTMLDivElement>, data: Point[]) {
-  const width = 800;
-  const height = 600;
+function RenderMap({ mapData, data }: { mapData: GeoJSON.Feature[], data: Point[] }) {
+  const map = useMap();
 
-  const svg = d3.select(mapRef.current)
-    .append("svg")
-    .attr("width", width)
-    .attr("height", height);
+  useEffect(() => {
+    const bounds = L.geoJSON(mapData).getBounds();
+    map.fitBounds(bounds);
 
-  const projection = d3.geoAlbersUsa()
-    .scale(1000)
-    .translate([width / 2, height / 2]);
+    data.forEach(point => {
+      L.circle([point.y, point.x], {
+        color: point.result === 0 ? 'green' : 'red',
+        radius: 50
+      }).addTo(map);
+    });
+  }, [map, mapData, data]);
 
-  const path = d3.geoPath().projection(projection);
-
-  const color = d3.scaleOrdinal()
-    .domain(["0", "1"])
-    .range(["#001f3f", "#7FDBFF"]);
-
-  svg.append("g")
-    .selectAll("path")
-    .data(mapData)
-    .enter().append("path")
-    .attr("d", path as unknown as string)
-    .attr("fill", "#ccc")
-    .attr("stroke", "#333");
-
-  svg.selectAll("circle")
-    .data(data)
-    .enter().append("circle")
-    .attr("cx", (d: Point) => d.x)
-    .attr("cy", (d: Point) => d.y)
-    .attr("r", 5)
-    .attr("fill", (d: Point) => color(d.result.toString()) as string);
+  return null;
 }
 
 export default function App() {
@@ -111,9 +97,10 @@ export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [isMapLoading, setIsMapLoading] = useState<boolean>(true);
+  const [mapData, setMapData] = useState<GeoJSON.Feature[]>([]);
+  const [points, setPoints] = useState<Point[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isLoaded || loadError) return;
@@ -133,36 +120,24 @@ export default function App() {
     const cachedMapData = localStorage.getItem("mapData");
     if (cachedMapData) {
       const mapData = JSON.parse(cachedMapData);
-      const width = 800;
-      const height = 600;
-      const projection = d3.geoAlbersUsa()
-        .scale(1000)
-        .translate([width / 2, height / 2]);
-      const eligiblePoints = gatherEligiblePoints(mapData, projection, width, height);
+      const eligiblePoints = gatherEligiblePoints(mapData);
       const data = samplePoints(eligiblePoints, 100);
-      if (mapRef.current) {
-        renderMap(mapData, mapRef as React.RefObject<HTMLDivElement>, data);
-      }
+      setMapData(mapData);
+      setPoints(data);
       setIsMapLoading(false);
     } else {
-      const width = 800;
-      const height = 600;
-
-      const projection = d3.geoAlbersUsa()
-        .scale(1000)
-        .translate([width / 2, height / 2]);
-
-      d3.json("https://d3js.org/us-10m.v1.json").then(function(us) {
-        const topology = us as Topology;
-        const mapData = (topojson.feature(topology, topology.objects.states) as unknown as GeoJSON.FeatureCollection).features;
-        localStorage.setItem("mapData", JSON.stringify(mapData));
-        const eligiblePoints = gatherEligiblePoints(mapData, projection, width, height);
-        const data = samplePoints(eligiblePoints, 100);
-        if (mapRef.current) {
-          renderMap(mapData, mapRef as React.RefObject<HTMLDivElement>, data);
-        }
-        setIsMapLoading(false);
-      });
+      setIsMapLoading(true);
+      fetch("https://d3js.org/us-10m.v1.json")
+        .then(response => response.json())
+        .then((us: Topology) => {
+          const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features;
+          localStorage.setItem("mapData", JSON.stringify(mapData));
+          const eligiblePoints = gatherEligiblePoints(mapData);
+          const data = samplePoints(eligiblePoints, 100);
+          setMapData(mapData);
+          setPoints(data);
+          setIsMapLoading(false);
+        });
     }
   }, [isLoaded, loadError]);
 
@@ -220,7 +195,7 @@ export default function App() {
             ref={inputRef}
             type="text"
             placeholder="Enter an address"
-            className="border p-2 w-full rounded"
+            className="border p-2 w-full rounded custom-input" // Apply custom class
           />
           <DatePicker
             selected={safeParseDate(input.d)}
@@ -241,7 +216,16 @@ export default function App() {
           </div>
         )}
         {isMapLoading && <div className="mt-4 text-white">Loading map...</div>}
-        <div ref={mapRef} className="mt-4"></div> {/* Add a div to render the map */}
+        {isMapLoading && <div className="mt-4 text-white">Loading map...</div>}
+        {!isMapLoading && (
+          <MapContainer center={[38.9072, -77.0369]} zoom={12} style={{ height: "600px" }}>
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="&copy; OpenStreetMap contributors"
+          />
+          <RenderMap mapData={mapData} data={points} />
+          </MapContainer>
+        )}
       </div>
     </div>
   );
