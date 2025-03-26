@@ -246,7 +246,7 @@ export default function App() {
             <strong>Prediction Result:</strong> {predictionResult === 0 ? "You are unlikely to get an expired meter ticket" : "You are likely to get an expired meter ticket"}
           </div>
         )}
-        {isMapLoading && <div className="mt-4 text-white">Loading map...</div>}
+        {isMapLoading && <div className="mt-4 text-white">📍 Loading map... (this may take some time, but it will be cached for your next visit) 📍</div>}
         {!isMapLoading && (
           <>
             <h2 className="mt-4 text-white">Below is a sample of model predictions for the current date and time:</h2>
