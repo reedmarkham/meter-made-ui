@@ -38,13 +38,15 @@ interface Point {
 async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolean): Promise<Point[]> {
   if (typeof window === "undefined" || !isClient) return [];
 
-  const { default: L } = await import("leaflet"); // Dynamically import Leaflet on the client-side
+  console.log("Gathering eligible points within DC boundaries...");
 
+  const { default: L } = await import("leaflet");
   const dcBoundary = mapData.find((feature) => feature.properties?.name === "District of Columbia");
   if (!dcBoundary) return [];
 
-  const eligiblePoints: Point[] = [];
+  console.log("DC boundary found, processing points...");
 
+  const eligiblePoints: Point[] = [];
   const bounds = L.geoJSON(dcBoundary).getBounds();
   const latMin = bounds.getSouthWest().lat;
   const latMax = bounds.getNorthEast().lat;
@@ -59,62 +61,57 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
     }
   }
 
+  console.log(`Eligible points gathered: ${eligiblePoints.length}`);
   return eligiblePoints;
 }
 
 function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
+  console.log("Sampling points for visualization...");
   const sampledPoints: Point[] = [];
   while (sampledPoints.length < sampleSize && eligiblePoints.length > 0) {
     const index = Math.floor(Math.random() * eligiblePoints.length);
     sampledPoints.push(eligiblePoints.splice(index, 1)[0]);
   }
+  console.log(`Sampled ${sampledPoints.length} points.`);
   return sampledPoints;
 }
 
-function RenderMap({
-  isClient,
-  mapData,
-  data,
-}: {
-  isClient: boolean;
-  mapData: GeoJSON.Feature[];
-  data: Point[];
-}) {
+function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: GeoJSON.Feature[]; data: Point[] }) {
   const mapRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (isClient && mapRef.current) {
-      // Dynamically import Leaflet to avoid SSR issues
+      console.log("Initializing Leaflet map...");
       import("leaflet").then((L) => {
         const map = L.map(mapRef.current as HTMLElement).setView(DC_COORDINATES, 12);
+        console.log("Leaflet map initialized.");
 
-        // Add tile layer
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+        console.log("Tile layer added to map.");
 
         const bounds = L.geoJSON(mapData).getBounds();
         map.fitBounds(bounds);
+        console.log("Map bounds set.");
 
-        // Add circles for each point
+        console.log("Rendering points on the map...");
         data.forEach((point) => {
           L.circle([point.y, point.x], {
-            color: point.result === 0 ? "#56A0D3" : "#003B5C", // Lighter blue for negative, darker blue for positive
+            color: point.result === 0 ? "#56A0D3" : "#003B5C",
             fillOpacity: 0.6,
             radius: 200,
           }).addTo(map);
         });
 
-        // Cleanup on component unmount
+        console.log("Map generation complete.");
         return () => {
           map.remove();
+          console.log("Map removed on unmount.");
         };
       });
     }
   }, [isClient, mapData, data]);
 
-  // Prevent map rendering during SSR
   if (!isClient) return null;
-
-  // Return the custom Map component with necessary props
   return <Map isClient={isClient} mapData={mapData} data={data} />;
 }
 
