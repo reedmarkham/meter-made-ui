@@ -11,11 +11,13 @@ import "leaflet/dist/leaflet.css";
 import "./styles.css";
 import * as topojson from "topojson-client";
 import L from "leaflet";
-import { useMap } from "react-leaflet";
 
 // Dynamically import Leaflet components to avoid SSR issues
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
+
+// Dynamically import your custom map component
+const Map = dynamic(() => import('@/components/map'), { ssr: false });
 
 const libraries: Library[] = ["places"];
 
@@ -62,24 +64,31 @@ function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
   return sampledPoints;
 }
 
-function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: GeoJSON.Feature[]; data: Point[] }) {
-  const map = useMap();
+function makePrediction(input: InputState): Promise<number> {
+  return new Promise((resolve, reject) => {
+    // Simulate an API call for prediction (this is where the model prediction logic will go)
+    setTimeout(() => {
+      // Randomly predict 0 or 1 (you would replace this with your actual prediction logic)
+      const prediction = Math.random() > 0.5 ? 1 : 0;
+      resolve(prediction);
+    }, 1000);
+  });
+}
 
-  useEffect(() => {
-    if (isClient && map) {
-      const bounds = L.geoJSON(mapData).getBounds();
-      map.fitBounds(bounds);
-
-      data.forEach((point) => {
-        L.circle([point.y, point.x], {
-          color: point.result === 0 ? "#56A0D3" : "#003B5C", // Lighter blue for negative, darker blue for positive
-          radius: 50,
-        }).addTo(map);
-      });
-    }
-  }, [isClient, map, mapData, data]);
-
-  return null;
+function RenderMap({
+  isClient,
+  mapData,
+  data,
+}: {
+  isClient: boolean;
+  mapData: GeoJSON.Feature[];
+  data: Point[];
+}) {
+  return (
+    <div style={{ height: "600px" }}>
+      <Map isClient={isClient} mapData={mapData} data={data} />
+    </div>
+  );
 }
 
 export default function App() {
@@ -111,14 +120,6 @@ export default function App() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [isClient, setIsClient] = useState(false);
-
-  const Map = useMemo(() => dynamic(
-    () => import('@/components/map/'),
-    {
-      loading: () => <p>A map is loading</p>,
-      ssr: false
-    }
-  ), []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -296,33 +297,4 @@ export default function App() {
       </div>
     </div>
   );
-}
-
-async function makePrediction(inputData: InputState) {
-  const apiUrl = process.env.NEXT_PUBLIC_MODEL_API;
-  if (!apiUrl) {
-    throw new Error("NEXT_PUBLIC_MODEL_API environment variable is not defined");
-  }
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(inputData),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      return data.ticketed;
-    } else {
-      throw new Error(data.error || "Prediction failed");
-    }
-  } catch (error) {
-    console.error("Prediction error:", error);
-    throw error;
-  }
 }

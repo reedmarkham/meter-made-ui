@@ -1,22 +1,38 @@
-import React, { useEffect, useRef } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import React, { useEffect } from "react";
+import L from "leaflet";
 
-interface MapProps {
-  posix: [number, number];
+interface Point {
+  x: number;
+  y: number;
+  result: number;
 }
 
-const MapComponent: React.FC<MapProps> = ({ posix }) => {
-  const mapRef = useRef<HTMLDivElement>(null);
+interface MapProps {
+  isClient: boolean;
+  mapData: GeoJSON.Feature[];
+  data: Point[];
+}
 
+const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
   useEffect(() => {
-    if (mapRef.current) {
-      const map = L.map(mapRef.current).setView(posix, 13); // Adjust zoom level as needed
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    }
-  }, [posix]);
+    if (isClient) {
+      const map = L.map("map").setView([38.9072, -77.0369], 12);
 
-  return <div ref={mapRef} style={{ width: '100%', height: '100%' }} />;
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+      const bounds = L.geoJSON(mapData).getBounds();
+      map.fitBounds(bounds);
+
+      data.forEach((point) => {
+        L.circle([point.y, point.x], {
+          color: point.result === 0 ? "#56A0D3" : "#003B5C", // Lighter blue for negative, darker blue for positive
+          radius: 50,
+        }).addTo(map);
+      });
+    }
+  }, [isClient, mapData, data]);
+
+  return <div id="map" style={{ height: "600px" }} />;
 };
 
-export default MapComponent;
+export default Map;
