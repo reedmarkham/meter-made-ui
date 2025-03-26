@@ -205,6 +205,8 @@ export default function App() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900">
       <div className="w-full max-w-xl flex flex-col gap-4 bg-gray-800 p-6 rounded-lg shadow-lg">
+        <h1 className="text-center text-white font-semibold">meter-made</h1>
+        <h2 className="text-center text-white">A machine learning model trained on expired meter parking tickets in Washington, DC issued in 2024</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             ref={inputRef}
