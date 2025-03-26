@@ -12,7 +12,6 @@ import "./styles.css";
 import * as topojson from "topojson-client";
 
 // Dynamically import Leaflet components to avoid SSR issues
-const L = typeof window !== "undefined" ? require("leaflet") : null;
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
 
@@ -35,31 +34,26 @@ interface Point {
   result: number;
 }
 
-function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolean): Point[] {
-  if (typeof window === 'undefined') return []; 
-  
-  if (!isClient) {
-    return []; // Return an empty array during SSR
-  }
+async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolean): Promise<Point[]> {
+  if (typeof window === "undefined" || !isClient) return [];
+
+  const { default: L } = await import("leaflet"); // Dynamically import Leaflet on the client-side
 
   const dcBoundary = mapData.find((feature) => feature.properties?.name === "District of Columbia");
   if (!dcBoundary) return [];
 
   const eligiblePoints: Point[] = [];
-  
-  // Ensure Leaflet-related code only runs on the client
-  if (isClient) {
-    const bounds = L.geoJSON(dcBoundary).getBounds();
-    const latMin = bounds.getSouthWest().lat;
-    const latMax = bounds.getNorthEast().lat;
-    const lngMin = bounds.getSouthWest().lng;
-    const lngMax = bounds.getNorthEast().lng;
 
-    for (let lat = latMin; lat <= latMax; lat += 0.01) {
-      for (let lng = lngMin; lng <= lngMax; lng += 0.01) {
-        if (bounds.contains([lat, lng])) {
-          eligiblePoints.push({ x: lng, y: lat, result: Math.round(Math.random()) });
-        }
+  const bounds = L.geoJSON(dcBoundary).getBounds();
+  const latMin = bounds.getSouthWest().lat;
+  const latMax = bounds.getNorthEast().lat;
+  const lngMin = bounds.getSouthWest().lng;
+  const lngMax = bounds.getNorthEast().lng;
+
+  for (let lat = latMin; lat <= latMax; lat += 0.01) {
+    for (let lng = lngMin; lng <= lngMax; lng += 0.01) {
+      if (bounds.contains([lat, lng])) {
+        eligiblePoints.push({ x: lng, y: lat, result: Math.round(Math.random()) });
       }
     }
   }
@@ -89,27 +83,29 @@ function RenderMap({
 
   useEffect(() => {
     if (isClient && mapRef.current) {
-      // Initialize map using Leaflet only when it's client-side
-      const map = L.map(mapRef.current as HTMLElement).setView([38.9072, -77.0369], 12);
+      // Dynamically import Leaflet to avoid SSR issues
+      import("leaflet").then((L) => {
+        const map = L.map(mapRef.current as HTMLElement).setView([38.9072, -77.0369], 12);
 
-      // Add tile layer
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+        // Add tile layer
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-      const bounds = L.geoJSON(mapData).getBounds();
-      map.fitBounds(bounds);
+        const bounds = L.geoJSON(mapData).getBounds();
+        map.fitBounds(bounds);
 
-      // Add circles for each point
-      data.forEach((point) => {
-        L.circle([point.y, point.x], {
-          color: point.result === 0 ? "#56A0D3" : "#003B5C", // Lighter blue for negative, darker blue for positive
-          radius: 50,
-        }).addTo(map);
+        // Add circles for each point
+        data.forEach((point) => {
+          L.circle([point.y, point.x], {
+            color: point.result === 0 ? "#56A0D3" : "#003B5C", // Lighter blue for negative, darker blue for positive
+            radius: 50,
+          }).addTo(map);
+        });
+
+        // Cleanup on component unmount
+        return () => {
+          map.remove();
+        };
       });
-
-      // Cleanup on component unmount
-      return () => {
-        map.remove();
-      };
     }
   }, [isClient, mapData, data]);
 
@@ -172,57 +168,61 @@ export default function App() {
   }, [isClient, isLoaded, loadError]);
 
   useEffect(() => {
-    if (!isClient || typeof localStorage === "undefined") return;
-  
-    const cachedMapData = localStorage.getItem("mapData");
-    const cachedTimestamp = localStorage.getItem("mapDataTimestamp");
-    const now = new Date();
-  
-    // If cache is available and valid
-    if (cachedMapData && cachedTimestamp) {
-      const cachedDate = new Date(cachedTimestamp);
-      const hoursDifference = (now.getTime() - cachedDate.getTime()) / (1000 * 60 * 60);
-  
-      // Only use cache if it's less than 3 hours old
-      if (hoursDifference < 3) {
-        try {
-          const mapData = JSON.parse(cachedMapData);
-          const eligiblePoints = gatherEligiblePoints(mapData, isClient);
-          const data = samplePoints(eligiblePoints, SAMPLE_SIZE);
-          setMapData(mapData);
-          setPoints(data);
-          setCacheTimestamp(cachedTimestamp);
-          setIsMapLoading(false);
-          return; // Exit if cache is valid
-        } catch (error) {
-          console.error("Error parsing cached map data:", error);
+    const fetchData = async () => {
+      if (!isClient || typeof localStorage === "undefined") return;
+    
+      const cachedMapData = localStorage.getItem("mapData");
+      const cachedTimestamp = localStorage.getItem("mapDataTimestamp");
+      const now = new Date();
+    
+      // If cache is available and valid
+      if (cachedMapData && cachedTimestamp) {
+        const cachedDate = new Date(cachedTimestamp);
+        const hoursDifference = (now.getTime() - cachedDate.getTime()) / (1000 * 60 * 60);
+    
+        // Only use cache if it's less than 3 hours old
+        if (hoursDifference < 3) {
+          try {
+            const mapData = JSON.parse(cachedMapData);
+            const eligiblePoints = await gatherEligiblePoints(mapData, isClient);
+            const data = samplePoints(eligiblePoints, SAMPLE_SIZE);
+            setMapData(mapData);
+            setPoints(data);
+            setCacheTimestamp(cachedTimestamp);
+            setIsMapLoading(false);
+            return; // Exit if cache is valid
+          } catch (error) {
+            console.error("Error parsing cached map data:", error);
+          }
         }
       }
-    }
-  
-    // Fetch new map data if no valid cache is available
-    fetch("https://d3js.org/us-10m.v1.json")
-      .then((response) => response.json())
-      .then((us: Topology) => {
-        const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features;
-        const eligiblePoints = gatherEligiblePoints(mapData, isClient);
-        const data = samplePoints(eligiblePoints, SAMPLE_SIZE);
-        const timestamp = now.toISOString();
-        
-        // Store in localStorage for future use
-        localStorage.setItem("mapData", JSON.stringify(mapData));
-        localStorage.setItem("mapDataTimestamp", timestamp);
-  
-        setMapData(mapData);
-        setPoints(data);
-        setCacheTimestamp(timestamp);
-        setIsMapLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching map data:", error);
-        // Handle fetch error (show a fallback message or retry logic)
-        setIsMapLoading(false);
-      });
+    
+      // Fetch new map data if no valid cache is available
+      fetch("https://d3js.org/us-10m.v1.json")
+        .then((response) => response.json())
+        .then(async (us: Topology) => {
+          const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features;
+          const eligiblePoints = await gatherEligiblePoints(mapData, isClient);
+          const data = samplePoints(eligiblePoints, SAMPLE_SIZE);
+          const timestamp = now.toISOString();
+          
+          // Store in localStorage for future use
+          localStorage.setItem("mapData", JSON.stringify(mapData));
+          localStorage.setItem("mapDataTimestamp", timestamp);
+    
+          setMapData(mapData);
+          setPoints(data);
+          setCacheTimestamp(timestamp);
+          setIsMapLoading(false);
+        })
+        .catch((error) => {
+          console.error("Error fetching map data:", error);
+          // Handle fetch error (show a fallback message or retry logic)
+          setIsMapLoading(false);
+        });
+    };
+
+    fetchData();
   }, [isClient]);
   
 

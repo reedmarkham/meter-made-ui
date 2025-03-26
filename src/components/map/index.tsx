@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Feature } from "geojson";
 
 interface Point {
   x: number;
@@ -8,12 +9,12 @@ interface Point {
 
 interface MapProps {
   isClient: boolean;
-  mapData: GeoJSON.Feature[];
+  mapData: Feature[];
   data: Point[];
 }
 
 const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
-  const [L, setL] = useState<any>(null);
+  const [L, setL] = useState<typeof import("leaflet") | null>(null);
 
   useEffect(() => {
     if (isClient && typeof window !== "undefined") {
