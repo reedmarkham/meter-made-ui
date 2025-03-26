@@ -8,16 +8,16 @@ import { Library } from "@googlemaps/js-api-loader";
 import dynamic from "next/dynamic";
 import { Topology } from "topojson-specification";
 import "leaflet/dist/leaflet.css";
-import "./styles.css"; // Import the custom CSS file
+import "./styles.css";
 import * as topojson from "topojson-client";
 import L from "leaflet";
+import { useMap } from "react-leaflet";
 
-// Dynamically import MapContainer and TileLayer to avoid SSR issues
+// Dynamically import Leaflet components to avoid SSR issues
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
-const useMap = dynamic(() => import('react-leaflet').then((mod) => mod.useMap),  { ssr: false });
 
-const libraries: Library[] = ["places"]; // Keeping the libraries variable for the Google Maps API
+const libraries: Library[] = ["places"];
 
 interface InputState {
   d: string;
@@ -90,7 +90,7 @@ export default function App() {
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: apiKey,
-    libraries, // Using the libraries array here for Google Maps
+    libraries,
   });
 
   const [input, setInput] = useState<InputState>({
@@ -113,7 +113,6 @@ export default function App() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // Check if the window object is available (client-side only)
     if (typeof window !== "undefined") {
       setIsClient(true);
     }
@@ -127,7 +126,6 @@ export default function App() {
       fields: ["address_components", "geometry"],
     };
 
-    // Only initialize Google Maps API and autocomplete if window is available
     if (typeof window !== "undefined") {
       const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, options);
       autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
@@ -137,7 +135,7 @@ export default function App() {
   }, [isClient, isLoaded, loadError]);
 
   useEffect(() => {
-    if (!isClient) return; // Prevent running this on the server-side
+    if (!isClient) return;
 
     const cachedMapData = localStorage.getItem("mapData");
     const cachedTimestamp = localStorage.getItem("mapDataTimestamp");
@@ -240,7 +238,7 @@ export default function App() {
             onChange={handleChange}
             showTimeSelect
             dateFormat="Pp"
-            className="border p-2 w-full rounded custom-datepicker" // Apply custom class
+            className="border p-2 w-full rounded custom-datepicker"
           />
           <button type="submit" className="bg-blue-500 text-white p-2 rounded" disabled={isLoading}>
             {isLoading ? "Loading..." : "Submit"}
