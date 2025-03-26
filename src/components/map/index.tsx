@@ -32,7 +32,7 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
     }
   }, [isClient, mapData, data]);
 
-  if (!isClient) {
+  if (!isClient || typeof window === "undefined") {
     return <div>Loading...</div>; // or any placeholder UI
   }
 
