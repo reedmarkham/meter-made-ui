@@ -10,9 +10,6 @@ import "./styles.css"; // Import the custom CSS file
 
 const libraries: Library[] = ["places"];
 
-const MapContainer = dynamic(() => import("react-leaflet").then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import("react-leaflet").then(mod => mod.TileLayer), { ssr: false });
-
 interface InputState {
   d: string;
   h: number;
@@ -41,10 +38,8 @@ export default function App() {
   const [predictionResult, setPredictionResult] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
-  const [isMapLoading, setIsMapLoading] = useState<boolean>(true);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window === "undefined" || !isLoaded || loadError) return;
@@ -113,7 +108,7 @@ export default function App() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900">
       <div className="w-full max-w-xl flex flex-col gap-4 bg-gray-800 p-6 rounded-lg shadow-lg">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             ref={inputRef}
             type="text"
@@ -141,4 +136,33 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+async function makePrediction(inputData: InputState) {
+  const apiUrl = process.env.NEXT_PUBLIC_MODEL_API;
+  if (!apiUrl) {
+    throw new Error("NEXT_PUBLIC_MODEL_API environment variable is not defined");
+  }
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(inputData),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      return data.ticketed;
+    } else {
+      throw new Error(data.error || "Prediction failed");
+    }
+  } catch (error) {
+    console.error("Prediction error:", error);
+    throw error;
+  }
 }
