@@ -5,7 +5,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
 import { Library } from '@googlemaps/js-api-loader';
-import { MapContainer, TileLayer, Circle, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import "leaflet/dist/leaflet.css";
 import "./styles.css"; // Import the custom CSS file
