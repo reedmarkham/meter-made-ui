@@ -62,16 +62,8 @@ function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
   return sampledPoints;
 }
 
-function RenderMap({ mapData, data }: { mapData: GeoJSON.Feature[]; data: Point[] }) {
+function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: GeoJSON.Feature[]; data: Point[] }) {
   const map = useMap();
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    // Check if the window object is available (client-side only)
-    if (typeof window !== "undefined") {
-      setIsClient(true);
-    }
-  }, []);
 
   useEffect(() => {
     if (isClient && map) {
@@ -281,7 +273,7 @@ export default function App() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution="&copy; OpenStreetMap contributors"
               />
-              <RenderMap mapData={mapData} data={points} />
+              <RenderMap isClient={isClient} mapData={mapData} data={points} />
             </MapContainer>
             {cacheTimestamp && (
               <div className="mt-4 text-white">
