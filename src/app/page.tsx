@@ -128,10 +128,12 @@ export default function App() {
     };
 
     // Only initialize Google Maps API and autocomplete if window is available
-    const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, options);
-    autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
+    if (typeof window !== "undefined") {
+      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, options);
+      autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
 
-    return () => window.google.maps.event.clearInstanceListeners(autocomplete);
+      return () => window.google.maps.event.clearInstanceListeners(autocomplete);
+    }
   }, [isClient, isLoaded, loadError]);
 
   useEffect(() => {
@@ -259,7 +261,7 @@ export default function App() {
           </div>
         )}
         {isMapLoading && (
-          <div className="mt-4 text-white">
+          <div className="mt-4 text-white loading-text">
             📍 Loading map... (this may take some time, but it will be cached for your next visit) 📍
           </div>
         )}
