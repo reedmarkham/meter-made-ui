@@ -118,7 +118,7 @@ export default function App() {
   }, [isLoaded, loadError]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') return; // Prevent running this on the server-side
 
     const cachedMapData = localStorage.getItem("mapData");
     const cachedTimestamp = localStorage.getItem("mapDataTimestamp");
@@ -250,6 +250,11 @@ export default function App() {
             )}
           </>
         )}
+        <footer className="mt-8 text-center text-white">
+          <a href="mailto:reedmarkham@gmail.com" className="flex items-center justify-center gap-2">
+            <span>💌</span> reedmarkham@gmail.com
+          </a>
+        </footer>
       </div>
     </div>
   );
