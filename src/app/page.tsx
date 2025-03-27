@@ -69,6 +69,7 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
       // Convert only if necessary
       if (proj4) {
         [x, y] = proj4("EPSG:4326", "EPSG:3857", [lng, lat]);
+        console.log("Projected lat/lng:", x, y);
       }
 
       if (!isNaN(x) && !isNaN(y)) {
