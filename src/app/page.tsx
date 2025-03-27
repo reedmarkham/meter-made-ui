@@ -62,6 +62,7 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
 
     if (isInside) {
       // If projection is needed, ensure correct order [lng, lat]
+      console.log("Generated lat/lng:", lng, lat);
       let x = lng;
       let y = lat;
 
