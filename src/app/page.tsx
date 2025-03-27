@@ -38,16 +38,12 @@ interface Point {
 async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolean): Promise<Point[]> {
   if (typeof window === "undefined" || !isClient) return [];
 
-  console.log("Gathering eligible points within DC boundaries...");
-
   const { default: L } = await import("leaflet");
   const dcBoundary = mapData;
   if (!dcBoundary) {
     console.warn("DC map data not found.");
     return [];
   }
-
-  console.log("DC map data found, processing points...");
 
   const eligiblePoints: Point[] = [];
   const bounds = L.geoJSON(dcBoundary).getBounds();
@@ -56,13 +52,10 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
   const lngMin = bounds.getSouthWest().lng;
   const lngMax = bounds.getNorthEast().lng;
 
-  console.log(`DC Bounds: LatMin=${latMin}, LatMax=${latMax}, LngMin=${lngMin}, LngMax=${lngMax}`);
-
   for (let i = 0; i < SAMPLE_SIZE * 10; i++) {
     const lat = latMin + Math.random() * (latMax - latMin);
     const lng = lngMin + Math.random() * (lngMax - lngMin);
     const isInside = bounds.contains([lat, lng]);
-    console.log(`Generated point: Lat=${lat}, Lng=${lng}, Inside DC=${isInside}`);
     
     if (isInside) {
       eligiblePoints.push({ x: lng, y: lat, result: Math.round(Math.random()) });
@@ -70,14 +63,11 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
     }
   }
 
-  console.log(`Eligible points gathered: ${eligiblePoints.length}`);
   return eligiblePoints;
 }
 
 function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
-  console.log("Sampling points for visualization...");
   if (eligiblePoints.length === 0) {
-    console.warn("No eligible points available for sampling.");
     return [];
   }
   const sampledPoints: Point[] = [];
@@ -85,7 +75,6 @@ function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
     const index = Math.floor(Math.random() * eligiblePoints.length);
     sampledPoints.push(eligiblePoints.splice(index, 1)[0]);
   }
-  console.log(`Sampled ${sampledPoints.length} points.`);
   return sampledPoints;
 }
 
@@ -94,19 +83,14 @@ function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: Ge
 
   useEffect(() => {
     if (isClient && mapRef.current) {
-      console.log("Initializing Leaflet map...");
       import("leaflet").then((L) => {
         const map = L.map(mapRef.current as HTMLElement).setView(DC_COORDINATES, 12);
-        console.log("Leaflet map initialized.");
 
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-        console.log("Tile layer added to map.");
 
         const bounds = L.geoJSON(mapData).getBounds();
         map.fitBounds(bounds);
-        console.log("Map bounds set.");
 
-        console.log("Rendering points on the map...");
         data.forEach((point) => {
           L.circle([point.y, point.x], {
             color: point.result === 0 ? "#56A0D3" : "#003B5C",
@@ -115,10 +99,8 @@ function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: Ge
           }).addTo(map);
         });
 
-        console.log("Map generation complete.");
         return () => {
           map.remove();
-          console.log("Map removed on unmount.");
         };
       });
     }
@@ -152,7 +134,6 @@ export default function App() {
   const [isMapLoading, setIsMapLoading] = useState<boolean>(true);
   const [mapData, setMapData] = useState<GeoJSON.Feature[]>([]);
   const [points, setPoints] = useState<Point[]>([]);
-  const [cacheTimestamp, setCacheTimestamp] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -164,81 +145,29 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!isClient || !isLoaded || loadError || !inputRef.current) return;
-  
-    const options = {
-      componentRestrictions: { country: "us" },
-      fields: ["address_components", "geometry"],
-    };
-  
-    if (typeof window !== "undefined" && window.google?.maps) {
-      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, options);
-      autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
-  
-      return () => window.google.maps.event.clearInstanceListeners(autocomplete);
-    }
-  }, [isClient, isLoaded, loadError]);
+    if (!isClient || !isLoaded || loadError) return;
 
-  useEffect(() => {
     const fetchData = async () => {
-      if (!isClient || typeof localStorage === "undefined") return;
-    
-      const cachedMapData = localStorage.getItem("mapData");
-      const cachedTimestamp = localStorage.getItem("mapDataTimestamp");
-      const now = new Date();
-    
-      // If cache is available and valid
-      if (cachedMapData && cachedTimestamp) {
-        const cachedDate = new Date(cachedTimestamp);
-        const hoursDifference = (now.getTime() - cachedDate.getTime()) / (1000 * 60 * 60);
-    
-        // Only use cache if it's less than 3 hours old
-        if (hoursDifference < 3) {
-          try {
-            const mapData = JSON.parse(cachedMapData);
-            const eligiblePoints = await gatherEligiblePoints(mapData, isClient);
-            const data = samplePoints(eligiblePoints, SAMPLE_SIZE);
-            setMapData(mapData);
-            setPoints(data);
-            setCacheTimestamp(cachedTimestamp);
-            setIsMapLoading(false);
-            return; // Exit if cache is valid
-          } catch (error) {
-            console.error("Error parsing cached map data:", error);
-          }
-        }
+      try {
+        const response = await fetch("https://d3js.org/us-10m.v1.json");
+        const us: Topology = await response.json();
+        const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features.filter(
+          (d) => d.id === "11"
+        );
+        const eligiblePoints = await gatherEligiblePoints(mapData, isClient);
+        const data = samplePoints(eligiblePoints, SAMPLE_SIZE);
+
+        setMapData(mapData);
+        setPoints(data);
+        setIsMapLoading(false);
+      } catch (error) {
+        console.error("Error fetching map data:", error);
+        setIsMapLoading(false);
       }
-    
-      // Fetch new map data if no valid cache is available
-      fetch("https://d3js.org/us-10m.v1.json")
-        .then((response) => response.json())
-        .then(async (us: Topology) => {
-          const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features.filter(
-            (d) => d.id === "11"
-          );
-          const eligiblePoints = await gatherEligiblePoints(mapData, isClient);
-          const data = samplePoints(eligiblePoints, SAMPLE_SIZE);
-          const timestamp = now.toISOString();
-          
-          // Store in localStorage for future use
-          localStorage.setItem("mapData", JSON.stringify(mapData));
-          localStorage.setItem("mapDataTimestamp", timestamp);
-    
-          setMapData(mapData);
-          setPoints(data);
-          setCacheTimestamp(timestamp);
-          setIsMapLoading(false);
-        })
-        .catch((error) => {
-          console.error("Error fetching map data:", error);
-          // Handle fetch error (show a fallback message or retry logic)
-          setIsMapLoading(false);
-        });
     };
 
     fetchData();
-  }, [isClient]);
-  
+  }, [isClient, isLoaded, loadError]);
 
   const handlePlaceChanged = (autocomplete: google.maps.places.Autocomplete) => {
     const place = autocomplete.getPlace();
@@ -343,7 +272,7 @@ export default function App() {
         )}
         {isMapLoading && (
           <div className="mt-4 text-white loading-text">
-            📍 Loading map... (this may take some time, but it will be cached for your next visit) 📍
+            📍 Loading map... (this may take some time) 📍
           </div>
         )}
         {!isMapLoading && (
@@ -356,11 +285,6 @@ export default function App() {
               />
               <RenderMap isClient={isClient} mapData={mapData} data={points} />
             </MapContainer>
-            {cacheTimestamp && (
-              <div className="mt-4 text-white">
-                <strong>Map last cached at:</strong> {new Date(cacheTimestamp).toLocaleString()}
-              </div>
-            )}
           </>
         )}
         <footer className="mt-8 text-center text-white">
