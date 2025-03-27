@@ -34,8 +34,6 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
   if (typeof window === "undefined" || !isClient) return [];
 
   const { default: L } = await import("leaflet");
-
-  // If proj4 is needed, ensure it is correctly loaded
   const { default: proj4 } = await import("proj4");
 
   proj4.defs([
@@ -55,31 +53,35 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
   const lngMin = bounds.getSouthWest().lng;
   const lngMax = bounds.getNorthEast().lng;
 
+  console.log("Bounds: ", { latMin, latMax, lngMin, lngMax });
+
   for (let i = 0; i < SAMPLE_SIZE * 10; i++) {
     const lat = latMin + Math.random() * (latMax - latMin);
     const lng = lngMin + Math.random() * (lngMax - lngMin);
     const isInside = bounds.contains([lat, lng]);
 
+    console.log(`Generated lat/lng: [${lat}, ${lng}] - Is inside bounds: ${isInside}`);
+
     if (isInside) {
-      // If projection is needed, ensure correct order [lng, lat]
-      console.log("Generated lat/lng:", lng, lat);
       let x = lng;
       let y = lat;
 
-      // Convert only if necessary
+      // Log before and after projection
+      console.log("Before projection: lat/lng", lat, lng);
+
       if (proj4) {
         [x, y] = proj4("EPSG:4326", "EPSG:3857", [lng, lat]);
-        console.log("Projected lat/lng:", x, y);
+        console.log("After projection: x/y", x, y);
       }
 
       if (!isNaN(x) && !isNaN(y)) {
         eligiblePoints.push({ x, y, result: Math.round(Math.random()) });
+        console.log("Eligible point added:", { x, y });
       }
-
-      if (eligiblePoints.length >= SAMPLE_SIZE * 2) break;
     }
   }
 
+  console.log("Total eligible points:", eligiblePoints.length);
   return eligiblePoints;
 }
 
