@@ -86,7 +86,7 @@ function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: Ge
       import("leaflet").then((L) => {
         const map = L.map(mapRef.current as HTMLElement).setView(DC_COORDINATES, 12);
 
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+        // L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
         const bounds = L.geoJSON(mapData).getBounds();
         map.fitBounds(bounds);
