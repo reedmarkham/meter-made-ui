@@ -139,7 +139,7 @@ export default function App() {
 
   useEffect(() => {
     if (!isClient || !isLoaded || loadError) return;
-
+  
     const fetchData = async () => {
       try {
         const response = await fetch("https://d3js.org/us-10m.v1.json");
@@ -159,14 +159,24 @@ export default function App() {
           const geometry = feature.geometry;
     
           if (geometry.type === "Polygon" || geometry.type === "MultiPolygon") {
-            // Handle Polygon and MultiPolygon types
             const coordinates = geometry.coordinates;
     
-            coordinates.forEach((polygon: any) => {
-              polygon.forEach((coord: any) => {
-                console.log(`Feature ${index}: coord`, coord); // Log each coordinate pair
+            // Handle MultiPolygon or Polygon coordinates
+            if (Array.isArray(coordinates[0][0])) {
+              // MultiPolygon (array of polygons)
+              (coordinates as GeoJSON.Position[][]).forEach((polygon: GeoJSON.Position[]) => {
+                polygon.forEach((coord: GeoJSON.Position) => {
+                  console.log(`Feature ${index}: coord`, coord); // Log each coordinate pair
+                });
               });
-            });
+            } else {
+              // Polygon (single polygon)
+              (coordinates as GeoJSON.Position[][]).forEach((polygon: GeoJSON.Position[]) => {
+                polygon.forEach((coord: GeoJSON.Position) => {
+                  console.log(`Feature ${index}: coord`, coord); // Log each coordinate pair
+                });
+              });
+            }
           } else {
             console.warn(`Unsupported geometry type: ${geometry.type}`);
           }
@@ -187,6 +197,7 @@ export default function App() {
     
     fetchData();
   }, [isClient, isLoaded, loadError]);
+  
 
   useEffect(() => {
     if (!isClient || !isLoaded || loadError || !inputRef.current) return;
