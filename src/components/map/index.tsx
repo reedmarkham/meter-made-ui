@@ -32,7 +32,6 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
   useEffect(() => {
     if (!L) return;
 
-    // Only initialize if map doesn't already exist
     if (!mapRef.current) {
       console.log("Initializing map...");
       mapRef.current = L.map("map").setView(DC_COORDINATES, 12);
@@ -51,7 +50,6 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
       const map = mapRef.current;
 
       console.log("Clearing existing data layers...");
-      // Remove only data layers, keep the tile layer
       map.eachLayer((layer) => {
         if (!(layer instanceof L.TileLayer)) {
           map.removeLayer(layer);
@@ -60,27 +58,33 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
       });
 
       console.log("Fitting map to data bounds...");
-      // Fit map to data bounds
       if (mapData.length > 0) {
         const bounds = L.geoJSON(mapData).getBounds();
-        map.fitBounds(bounds);
-        console.log("Map bounds set.");
+        console.log("Computed bounds:", bounds);
+        if (bounds.isValid()) {
+          map.fitBounds(bounds);
+        } else {
+          console.warn("Invalid bounds computed from mapData.");
+        }
       }
 
       console.log("Adding points to the map...");
-      // Add new points
       data.forEach((point, index) => {
-        L.circle([point.y, point.x], {
+        L.circle([point.x, point.y], { // Swapped x and y
           color: point.result === 0 ? "#003B5C" : "#56A0D3",
           radius: 100,
         }).addTo(map);
-        console.log(`Added point ${index + 1}: (${point.y}, ${point.x}) with color ${point.result === 0 ? "#003B5C" : "#56A0D3"}`);
+        console.log(`Added point ${index + 1}: (${point.x}, ${point.y}) with color ${point.result === 0 ? "#003B5C" : "#56A0D3"}`);
       });
+
+      console.log("Ensuring map container size is correct...");
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 300); // Delay to let rendering settle
     }
 
     return () => {
       console.log("Clearing map layers on cleanup...");
-      // Don't remove the map entirely; just clear layers
       if (mapRef.current) {
         mapRef.current.eachLayer((layer) => {
           if (!(layer instanceof L.TileLayer)) {
