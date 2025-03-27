@@ -144,12 +144,38 @@ export default function App() {
       try {
         const response = await fetch("https://d3js.org/us-10m.v1.json");
         const us: Topology = await response.json();
-        const mapData = (topojson.feature(us, us.objects.states) as unknown as GeoJSON.FeatureCollection).features.filter(
-          (d) => d.id === "11"
-        );
+    
+        // Convert TopoJSON to GeoJSON, and explicitly cast to GeoJSON.FeatureCollection
+        const geoJson = topojson.feature(us, us.objects.states) as GeoJSON.FeatureCollection;
+    
+        // Filter for Washington, DC by its id
+        const mapData = geoJson.features.filter((d) => d.id === "11");
+    
+        // Log the GeoJSON before using it
+        console.log("Original mapData:", mapData);
+    
+        // Validate if the coordinates are in EPSG:4326 (lat/lng)
+        mapData.forEach((feature, index) => {
+          const geometry = feature.geometry;
+    
+          if (geometry.type === "Polygon" || geometry.type === "MultiPolygon") {
+            // Handle Polygon and MultiPolygon types
+            const coordinates = geometry.coordinates;
+    
+            coordinates.forEach((polygon: any) => {
+              polygon.forEach((coord: any) => {
+                console.log(`Feature ${index}: coord`, coord); // Log each coordinate pair
+              });
+            });
+          } else {
+            console.warn(`Unsupported geometry type: ${geometry.type}`);
+          }
+        });
+    
+        // Pass mapData to gatherEligiblePoints to ensure correct bounds
         const eligiblePoints = await gatherEligiblePoints(mapData, isClient);
         const data = samplePoints(eligiblePoints, SAMPLE_SIZE);
-
+    
         setMapData(mapData);
         setPoints(data);
         setIsMapLoading(false);
@@ -158,7 +184,7 @@ export default function App() {
         setIsMapLoading(false);
       }
     };
-
+    
     fetchData();
   }, [isClient, isLoaded, loadError]);
 
