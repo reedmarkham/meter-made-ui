@@ -34,18 +34,13 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
   if (typeof window === "undefined" || !isClient) return [];
 
   const { default: L } = await import("leaflet");
+
+  // If proj4 is needed, ensure it is correctly loaded
   const { default: proj4 } = await import("proj4");
 
-  // Define projection transformation (from EPSG:4326 to EPSG:3857)
   proj4.defs([
-    [
-      "EPSG:3857",
-      "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs",
-    ],
-    [
-      "EPSG:4326",
-      "+proj=longlat +datum=WGS84 +no_defs",
-    ],
+    ["EPSG:3857", "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"],
+    ["EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs"],
   ]);
 
   if (!mapData || mapData.length === 0) {
@@ -66,9 +61,18 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
     const isInside = bounds.contains([lat, lng]);
 
     if (isInside) {
-      // Convert lat/lng to Web Mercator (EPSG:3857)
-      const [x, y] = proj4("EPSG:4326", "EPSG:3857", [lng, lat]);
-      eligiblePoints.push({ x, y, result: Math.round(Math.random()) });
+      // If projection is needed, ensure correct order [lng, lat]
+      let x = lng;
+      let y = lat;
+
+      // Convert only if necessary
+      if (proj4) {
+        [x, y] = proj4("EPSG:4326", "EPSG:3857", [lng, lat]);
+      }
+
+      if (!isNaN(x) && !isNaN(y)) {
+        eligiblePoints.push({ x, y, result: Math.round(Math.random()) });
+      }
 
       if (eligiblePoints.length >= SAMPLE_SIZE * 2) break;
     }
@@ -76,7 +80,6 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
 
   return eligiblePoints;
 }
-
 
 function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
   if (eligiblePoints.length === 0) {
