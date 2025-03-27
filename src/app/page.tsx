@@ -34,12 +34,12 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
   if (typeof window === "undefined" || !isClient) return [];
 
   const { default: L } = await import("leaflet");
-  const { default: proj4 } = await import("proj4");
+  // const { default: proj4 } = await import("proj4");
 
-  proj4.defs([
-    ["EPSG:3857", "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"],
-    ["EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs"],
-  ]);
+  // proj4.defs([
+  //  ["EPSG:3857", "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"],
+  //  ["EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs"],
+  //]);
 
   if (!mapData || mapData.length === 0) {
     console.warn("DC map data not found.");
@@ -69,10 +69,10 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
       // Log before and after projection
       // console.log("Before projection: lat/lng", lat, lng);
 
-      if (proj4) {
-        [x, y] = proj4("EPSG:4326", "EPSG:3857", [lng, lat]);
+      //if (proj4) {
+        //[x, y] = proj4("EPSG:4326", "EPSG:3857", [lng, lat]);
         // console.log("After projection: x/y", x, y);
-      }
+      //}
 
       if (!isNaN(x) && !isNaN(y)) {
         eligiblePoints.push({ x, y, result: Math.round(Math.random()) });
