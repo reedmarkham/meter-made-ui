@@ -84,7 +84,6 @@ function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: Ge
   return <Map isClient={isClient} mapData={mapData} data={data} />;
 }
 
-
 export default function App() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
   if (!apiKey) {
