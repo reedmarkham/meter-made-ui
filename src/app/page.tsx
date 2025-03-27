@@ -169,6 +169,22 @@ export default function App() {
     fetchData();
   }, [isClient, isLoaded, loadError]);
 
+  useEffect(() => {
+    if (!isClient || !isLoaded || loadError || !inputRef.current) return;
+
+    const options = {
+      componentRestrictions: { country: "us" },
+      fields: ["address_components", "geometry"],
+    };
+
+    if (typeof window !== "undefined" && window.google?.maps) {
+      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, options);
+      autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
+
+      return () => window.google.maps.event.clearInstanceListeners(autocomplete);
+    }
+  }, [isClient, isLoaded, loadError]);
+
   const handlePlaceChanged = (autocomplete: google.maps.places.Autocomplete) => {
     const place = autocomplete.getPlace();
     if (!place || !place.geometry || !place.geometry.location) return;
