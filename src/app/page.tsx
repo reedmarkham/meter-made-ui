@@ -99,6 +99,20 @@ function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: Ge
           }).addTo(map);
         });
 
+        const legend = new L.Control({ position: "bottomright" });
+
+        legend.onAdd = function () {
+          const div = L.DomUtil.create("div", "info legend");
+          div.innerHTML = `
+            <h4>Legend</h4>
+            <i style="background: #56A0D3"></i> Unlikely to get a ticket<br>
+            <i style="background: #003B5C"></i> Likely to get a ticket
+          `;
+          return div;
+        };
+
+        legend.addTo(map);
+
         return () => {
           map.remove();
         };
