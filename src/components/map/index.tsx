@@ -35,7 +35,7 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
     // Only initialize if map doesn't already exist
     if (!mapRef.current) {
       console.log("Initializing map...");
-      mapRef.current = L.map("bottomMap").setView(DC_COORDINATES, 12);
+      mapRef.current = L.map("map").setView(DC_COORDINATES, 12);
       console.log("Map initialized.");
 
       console.log("Adding tile layer...");
