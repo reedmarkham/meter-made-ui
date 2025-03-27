@@ -70,7 +70,7 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
       data.forEach((point, index) => {
         L.circle([point.y, point.x], {
           color: point.result === 0 ? "#003B5C" : "#56A0D3",
-          radius: 50,
+          radius: 100,
         }).addTo(map);
         console.log(`Added point ${index + 1}: (${point.y}, ${point.x}) with color ${point.result === 0 ? "#003B5C" : "#56A0D3"}`);
       });
