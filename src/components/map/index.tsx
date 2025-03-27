@@ -58,7 +58,7 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
         }
       }
 
-      data.forEach((point, index) => {
+      data.forEach((point) => {
         L.circle([point.x, point.y], { // Swapped x and y
           color: point.result === 0 ? "#003B5C" : "#56A0D3",
           radius: 100,
