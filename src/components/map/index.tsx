@@ -98,7 +98,7 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
   }
 
   console.log("Rendering map container...");
-  return <div id="bottomMap" style={{ height: "600px" }} />;
+  return <div id="map" style={{ height: "600px" }} />;
 };
 
 export default Map;

@@ -11,10 +11,6 @@ import "leaflet/dist/leaflet.css";
 import "./styles.css";
 import * as topojson from "topojson-client";
 
-// Dynamically import Leaflet components to avoid SSR issues
-const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
-
 // Dynamically import custom Map component
 const Map = dynamic(() => import('@/components/map/'), { ssr: false });
 
