@@ -268,13 +268,7 @@ export default function App() {
         {!isMapLoading && (
           <>
             <h2 className="mt-4 text-white">Below is a sample of model predictions for the current date and time:</h2>
-            <MapContainer center={DC_COORDINATES} zoom={12} style={{ height: "600px" }}>
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution="&copy; OpenStreetMap contributors"
-              />
               <RenderMap isClient={isClient} mapData={mapData} data={points} />
-            </MapContainer>
           </>
         )}
         <footer className="mt-8 text-center text-white">
