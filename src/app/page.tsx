@@ -220,7 +220,7 @@ export default function App() {
       <div className="w-full max-w-xl flex flex-col gap-4 bg-gray-800 p-6 rounded-lg shadow-lg">
         <h1 className="text-center text-white font-semibold text-4xl">meter-made</h1>
         <h2 className="text-center text-white text-2xl">
-          A machine learning model trained on expired meter parking tickets in Washington, DC issued in 2024
+          A machine learning model to predict expired meter parking tickets in Washington, DC
         </h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
