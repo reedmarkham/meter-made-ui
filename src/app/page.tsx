@@ -79,57 +79,11 @@ function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
 }
 
 function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: GeoJSON.Feature[]; data: Point[] }) {
-  const mapRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (isClient && mapRef.current) {
-      import("leaflet").then((L) => {
-        const map = L.map(mapRef.current as HTMLElement).setView(DC_COORDINATES, 12);
-        console.log("Map initialized with center:", DC_COORDINATES);
-
-        // L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
-        const bounds = L.geoJSON(mapData).getBounds();
-        map.fitBounds(bounds);
-        console.log("Map bounds set to:", bounds);
-        
-        console.log("Adding data points to the map...");
-        data.forEach((point) => {
-          L.circle([point.y, point.x], {
-            color: point.result === 0 ? "#003B5C" : "#56A0D3",
-            fillOpacity: 0.6,
-            radius: 200,
-          }).addTo(map);
-        });
-        
-        console.log("Adding legend to the map...");
-        const legend = new L.Control({ position: "bottomright" });
-
-        legend.onAdd = function () {
-          const div = L.DomUtil.create("div", "info legend");
-          div.innerHTML = `
-            <h4>Legend</h4>
-            <i style="background: #56A0D3"></i> Likely to get a ticket<br>
-            <i style="background: #003B5C"></i> Unlikely to get a ticket
-          `;
-          return div;
-        };
-
-        legend.addTo(map);
-
-        return () => {
-          console.log("Cleaning up the map...");
-          map.remove();
-          console.log("Map removed.");
-        };
-      });
-    }
-  }, [isClient, mapData, data]);
-
   if (!isClient) return null;
   console.log("Rendering map container...");
   return <Map isClient={isClient} mapData={mapData} data={data} />;
 }
+
 
 export default function App() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
