@@ -155,7 +155,7 @@ export default function App() {
         console.log("Original mapData:", mapData);
     
         // Validate if the coordinates are in EPSG:4326 (lat/lng)
-        mapData.forEach((feature, index) => {
+         /* mapData.forEach((feature) => {
           const geometry = feature.geometry;
     
           if (geometry.type === "Polygon" || geometry.type === "MultiPolygon") {
@@ -166,21 +166,21 @@ export default function App() {
               // MultiPolygon (array of polygons)
               (coordinates as GeoJSON.Position[][]).forEach((polygon: GeoJSON.Position[]) => {
                 polygon.forEach((coord: GeoJSON.Position) => {
-                  // console.log(`Feature ${index}: coord`, coord); // Log each coordinate pair
+                  console.log(`Feature ${index}: coord`, coord); // Log each coordinate pair
                 });
               });
             } else {
               // Polygon (single polygon)
               (coordinates as GeoJSON.Position[][]).forEach((polygon: GeoJSON.Position[]) => {
                 polygon.forEach((coord: GeoJSON.Position) => {
-                  // console.log(`Feature ${index}: coord`, coord); // Log each coordinate pair
+                  console.log(`Feature ${index}: coord`, coord); // Log each coordinate pair
                 });
               });
             }
           } else {
             console.warn(`Unsupported geometry type: ${geometry.type}`);
           }
-        });
+        }); */
     
         // Pass mapData to gatherEligiblePoints to ensure correct bounds
         const eligiblePoints = await gatherEligiblePoints(mapData, isClient);
