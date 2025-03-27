@@ -93,7 +93,7 @@ function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: Ge
 
         data.forEach((point) => {
           L.circle([point.y, point.x], {
-            color: point.result === 0 ? "#56A0D3" : "#003B5C",
+            color: point.result === 0 ? "#003B5C" : "#56A0D3",
             fillOpacity: 0.6,
             radius: 200,
           }).addTo(map);
@@ -291,7 +291,7 @@ export default function App() {
         {predictionResult !== null && (
           <div
             className={`mt-4 p-4 border rounded ${
-              predictionResult === 0 ? "bg-[#56A0D3] text-[#56A0D3]" : "bg-[#003B5C] text-[#003B5C]"
+              predictionResult === 0 ? "bg-[#003B5C] text-[#003B5C]" : "bg-[#56A0D3] text-[#56A0D3]"
             }`}
           >
             <strong>Prediction Result:</strong>{" "}

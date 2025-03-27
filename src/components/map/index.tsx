@@ -30,10 +30,8 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
 
     // Only initialize if map doesn't already exist
     if (!mapRef.current) {
-      console.log("Initializing map...");
       mapRef.current = L.map("bottomMap").setView([38.9072, -77.0369], 12);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(mapRef.current);
-      console.log("Map initialized.");
     }
 
     if (mapRef.current) {
@@ -55,7 +53,7 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
       // Add new points
       data.forEach((point) => {
         L.circle([point.y, point.x], {
-          color: point.result === 0 ? "#56A0D3" : "#003B5C",
+          color: point.result === 0 ? "#003B5C" : "#56A0D3",
           radius: 50,
         }).addTo(map);
       });
