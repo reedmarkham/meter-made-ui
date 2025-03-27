@@ -34,14 +34,27 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
   if (typeof window === "undefined" || !isClient) return [];
 
   const { default: L } = await import("leaflet");
-  const dcBoundary = mapData;
-  if (!dcBoundary) {
+  const { default: proj4 } = await import("proj4");
+
+  // Define projection transformation (from EPSG:4326 to EPSG:3857)
+  proj4.defs([
+    [
+      "EPSG:3857",
+      "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs",
+    ],
+    [
+      "EPSG:4326",
+      "+proj=longlat +datum=WGS84 +no_defs",
+    ],
+  ]);
+
+  if (!mapData || mapData.length === 0) {
     console.warn("DC map data not found.");
     return [];
   }
 
   const eligiblePoints: Point[] = [];
-  const bounds = L.geoJSON(dcBoundary).getBounds();
+  const bounds = L.geoJSON(mapData).getBounds();
   const latMin = bounds.getSouthWest().lat;
   const latMax = bounds.getNorthEast().lat;
   const lngMin = bounds.getSouthWest().lng;
@@ -51,15 +64,19 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
     const lat = latMin + Math.random() * (latMax - latMin);
     const lng = lngMin + Math.random() * (lngMax - lngMin);
     const isInside = bounds.contains([lat, lng]);
-    
+
     if (isInside) {
-      eligiblePoints.push({ x: lng, y: lat, result: Math.round(Math.random()) });
+      // Convert lat/lng to Web Mercator (EPSG:3857)
+      const [x, y] = proj4("EPSG:4326", "EPSG:3857", [lng, lat]);
+      eligiblePoints.push({ x, y, result: Math.round(Math.random()) });
+
       if (eligiblePoints.length >= SAMPLE_SIZE * 2) break;
     }
   }
 
   return eligiblePoints;
 }
+
 
 function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
   if (eligiblePoints.length === 0) {
