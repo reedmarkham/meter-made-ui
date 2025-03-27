@@ -305,16 +305,16 @@ export default function App() {
         {!hasSubmitted && <div className="mt-4 text-white">Please select a DC address, date, and time above</div>}
         {isLoading && <div className="mt-4 text-white">Loading...</div>}
         {predictionResult !== null && (
-          <div
+            <div
             className={`mt-4 p-4 border rounded ${
-              predictionResult === 0 ? "bg-[#003B5C] text-[#003B5C]" : "bg-[#56A0D3] text-[#56A0D3]"
+              predictionResult === 0 ? "bg-[#003B5C] text-white" : "bg-[#56A0D3] text-white"
             }`}
-          >
+            >
             <strong>Prediction Result:</strong>{" "}
             {predictionResult === 0
               ? "You are unlikely to get an expired meter ticket"
               : "You are likely to get an expired meter ticket"}
-          </div>
+            </div>
         )}
         {isMapLoading && (
           <div className="mt-4 text-white loading-text">
