@@ -63,8 +63,8 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
     // console.log(`Generated lat/lng: [${lat}, ${lng}] - Is inside bounds: ${isInside}`);
 
     if (isInside) {
-      let x = lng;
-      let y = lat;
+      const x = lng;
+      const y = lat;
 
       // Log before and after projection
       // console.log("Before projection: lat/lng", lat, lng);
