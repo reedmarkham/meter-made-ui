@@ -60,23 +60,23 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
     const lng = lngMin + Math.random() * (lngMax - lngMin);
     const isInside = bounds.contains([lat, lng]);
 
-    console.log(`Generated lat/lng: [${lat}, ${lng}] - Is inside bounds: ${isInside}`);
+    // console.log(`Generated lat/lng: [${lat}, ${lng}] - Is inside bounds: ${isInside}`);
 
     if (isInside) {
       let x = lng;
       let y = lat;
 
       // Log before and after projection
-      console.log("Before projection: lat/lng", lat, lng);
+      // console.log("Before projection: lat/lng", lat, lng);
 
       if (proj4) {
         [x, y] = proj4("EPSG:4326", "EPSG:3857", [lng, lat]);
-        console.log("After projection: x/y", x, y);
+        // console.log("After projection: x/y", x, y);
       }
 
       if (!isNaN(x) && !isNaN(y)) {
         eligiblePoints.push({ x, y, result: Math.round(Math.random()) });
-        console.log("Eligible point added:", { x, y });
+        // console.log("Eligible point added:", { x, y });
       }
     }
   }
@@ -166,14 +166,14 @@ export default function App() {
               // MultiPolygon (array of polygons)
               (coordinates as GeoJSON.Position[][]).forEach((polygon: GeoJSON.Position[]) => {
                 polygon.forEach((coord: GeoJSON.Position) => {
-                  console.log(`Feature ${index}: coord`, coord); // Log each coordinate pair
+                  // console.log(`Feature ${index}: coord`, coord); // Log each coordinate pair
                 });
               });
             } else {
               // Polygon (single polygon)
               (coordinates as GeoJSON.Position[][]).forEach((polygon: GeoJSON.Position[]) => {
                 polygon.forEach((coord: GeoJSON.Position) => {
-                  console.log(`Feature ${index}: coord`, coord); // Log each coordinate pair
+                  // console.log(`Feature ${index}: coord`, coord); // Log each coordinate pair
                 });
               });
             }
