@@ -13,6 +13,8 @@ interface MapProps {
   data: Point[];
 }
 
+const DC_COORDINATES: [number, number] = [38.9072, -77.0369];
+
 const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
   const [L, setL] = useState<typeof import("leaflet") | null>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -33,7 +35,7 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
     // Only initialize if map doesn't already exist
     if (!mapRef.current) {
       console.log("Initializing map...");
-      mapRef.current = L.map("bottomMap").setView([38.9072, -77.0369], 12);
+      mapRef.current = L.map("bottomMap").setView(DC_COORDINATES, 12);
       console.log("Map initialized.");
 
       console.log("Adding tile layer...");

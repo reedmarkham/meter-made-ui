@@ -20,7 +20,6 @@ const Map = dynamic(() => import('@/components/map/'), { ssr: false });
 
 const libraries: Library[] = ["places"];
 const SAMPLE_SIZE = 50;
-const DC_COORDINATES: [number, number] = [38.9072, -77.0369]; // Coordinates for Washington, DC
 
 interface InputState {
   d: string;
