@@ -109,21 +109,46 @@ function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: Ge
   return <Map isClient={isClient} mapData={mapData} data={data} />;
 }
 
-function convertToPosition(coord: any): [number, number] {
+type Coordinate = [number, number] | { x: number, y: number };
+
+type Position = number[];
+
+function convertToPosition(coord: Coordinate): [number, number] {
   if (Array.isArray(coord) && coord.length === 2) {
-    return coord as [number, number]; // Already correct format
+    return coord; // Already correct format
   } else if (typeof coord === "object" && "x" in coord && "y" in coord) {
     return [coord.x, coord.y]; // Convert {x, y} → [x, y]
   }
   throw new Error(`Invalid coordinate format: ${JSON.stringify(coord)}`);
 }
 
-function reprojectFeature(feature: GeoJSON.Feature) {
-  if (feature.geometry.type === "Polygon" || feature.geometry.type === "MultiPolygon") {
-    feature.geometry.coordinates = feature.geometry.coordinates.map((polygon) =>
-      polygon.map((coord) => proj4("EPSG:5070", "EPSG:4326", convertToPosition(coord)))
+function reprojectCoordinates(coordinates: [number, number][]): Position[] {
+  return coordinates.map((coord) => {
+    // proj4 returns a Position array (number[]), so we return it directly as Position
+    const projectedCoord: Position = proj4("EPSG:5070", "EPSG:4326", coord);
+    // Ensure it's a [number, number] tuple explicitly
+    return [projectedCoord[0], projectedCoord[1]]; // Keep the coordinates as [number, number] tuple
+  });
+}
+
+function reprojectFeature(feature: GeoJSON.Feature): GeoJSON.Feature {
+  // A reusable function to handle the reprojecting of coordinates
+  const reprojectGeometryCoordinates = (coordinates: [number, number][][]): Position[][] => {
+    return coordinates.map((polygon) =>
+      polygon.map((coord) => {
+        // Reproject each coordinate using proj4
+        const projectedCoord: Position = proj4("EPSG:5070", "EPSG:4326", coord);
+        return [projectedCoord[0], projectedCoord[1]]; // Return as [number, number] tuple
+      })
     );
+  };
+
+  // Check the geometry type and reproject accordingly
+  if (feature.geometry.type === "Polygon" || feature.geometry.type === "MultiPolygon") {
+    // Handle both Polygon and MultiPolygon using the same function
+    feature.geometry.coordinates = reprojectGeometryCoordinates(feature.geometry.coordinates as [number, number][][]);
   }
+
   return feature;
 }
 
