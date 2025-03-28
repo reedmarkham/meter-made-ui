@@ -2,10 +2,9 @@ import React, { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
-import { Library } from "@googlemaps/js-api-loader"; // Correctly import Library type
-// import dynamic from "next/dynamic"; // Import dynamic for SSR handling
+import { Library } from "@googlemaps/js-api-loader";
 
-const libraries: Library[] = ["places"]; // Use Library[] for the type
+const libraries: Library[] = ["places"];
 
 interface InputState {
   d: string;
@@ -19,9 +18,6 @@ interface Point {
   y: number;  // latitude
   result?: number;
 }
-
-// Dynamically import the Map component with no SSR
-// const Map = dynamic(() => import("@components/map"), { ssr: false });
 
 export default function App() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
