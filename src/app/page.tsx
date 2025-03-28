@@ -11,6 +11,7 @@ import "leaflet/dist/leaflet.css";
 import "./styles.css";
 import * as topojson from "topojson-client";
 import proj4 from "proj4";
+import { Feature } from "geojson";
 
 proj4.defs([
   ["EPSG:5070", "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"],
@@ -111,25 +112,36 @@ function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: Ge
 
 type Position = number[];
 
-function reprojectFeature(feature: GeoJSON.Feature): GeoJSON.Feature {
-  const isValidCoordinate = (coord: any) => 
-    Array.isArray(coord) && coord.length === 2 && !isNaN(coord[0]) && !isNaN(coord[1]);
-  
-  const reprojectGeometryCoordinates = (coordinates: [number, number][][]): Position[][] => {
-    return coordinates
-      .map((polygon) =>
-        polygon.filter((coord) => isValidCoordinate(coord))
-      )
-      .map((polygon) => 
-        polygon.map((coord) => {
-          const projectedCoord: Position = proj4("EPSG:5070", "EPSG:4326", coord);
-          return [projectedCoord[0], projectedCoord[1]]; // Return as [number, number] tuple
+function reprojectFeature(feature: Feature): Feature {
+  const isValidCoordinate = (coord: unknown): coord is [number, number] => 
+    Array.isArray(coord) && coord.length === 2 && 
+    typeof coord[0] === "number" && typeof coord[1] === "number" &&
+    !isNaN(coord[0]) && !isNaN(coord[1]);
+
+  const reprojectGeometryCoordinates = (coordinates: Position[][] | Position[][][]): Position[][] | Position[][][] => {
+    if (Array.isArray(coordinates[0][0])) {
+      // MultiPolygon (extra nesting)
+      return (coordinates as Position[][][]).map((polygon) =>
+        polygon.map((ring) =>
+          ring.filter(isValidCoordinate).map((coord) => {
+            const projectedCoord = proj4("EPSG:5070", "EPSG:4326", coord);
+            return [projectedCoord[0], projectedCoord[1]] as Position;
+          })
+        )
+      );
+    } else {
+      // Polygon
+      return (coordinates as Position[][]).map((ring) =>
+        ring.filter(isValidCoordinate).map((coord) => {
+          const projectedCoord = proj4("EPSG:5070", "EPSG:4326", coord);
+          return [projectedCoord[0], projectedCoord[1]] as Position;
         })
       );
+    }
   };
 
   if (feature.geometry.type === "Polygon" || feature.geometry.type === "MultiPolygon") {
-    feature.geometry.coordinates = reprojectGeometryCoordinates(feature.geometry.coordinates as [number, number][][]);
+    feature.geometry.coordinates = reprojectGeometryCoordinates(feature.geometry.coordinates as Position[][] | Position[][][]);
   }
 
   return feature;
