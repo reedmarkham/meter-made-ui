@@ -5,152 +5,14 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
 import { Library } from "@googlemaps/js-api-loader";
-import dynamic from "next/dynamic";
-import { Topology } from "topojson-specification";
-import "leaflet/dist/leaflet.css";
-import "./styles.css";
-import * as topojson from "topojson-client";
-import proj4 from "proj4";
-import { Feature } from "geojson";
-
-proj4.defs([
-  ["EPSG:5070", "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"],
-  ["EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs"]
-]);
 
 const libraries: Library[] = ["places"];
-const SAMPLE_SIZE = 50;
-
-// Dynamically import custom Map component
-const Map = dynamic(() => import('@/components/map/'), { ssr: false });
 
 interface InputState {
   d: string;
   h: number;
   x: number;
   y: number;
-}
-
-interface Point {
-  x: number;
-  y: number;
-  result: number;
-}
-
-async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolean): Promise<Point[]> {
-  if (typeof window === "undefined" || !isClient) return [];
-
-  const { default: L } = await import("leaflet");
-  // const { default: proj4 } = await import("proj4");
-
-  // proj4.defs([
-  //  ["EPSG:3857", "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"],
-  //  ["EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs"],
-  //]);
-
-  if (!mapData || mapData.length === 0) {
-    console.warn("DC map data not found.");
-    return [];
-  }
-
-  const eligiblePoints: Point[] = [];
-  const bounds = L.geoJSON(mapData).getBounds();
-
-  // const latMin = bounds.getSouthWest().lat;
-  // const latMax = bounds.getNorthEast().lat;
-  // const lngMin = bounds.getSouthWest().lng;
-  // const lngMax = bounds.getNorthEast().lng;
-  
-  const latMin = 38.85;  // Approximate lat/lng for DC
-  const latMax = 38.95;
-  const lngMin = -77.10;
-  const lngMax = -76.90;
-
-  console.log("Bounds: ", { latMin, latMax, lngMin, lngMax });
-
-  for (let i = 0; i < SAMPLE_SIZE * 10; i++) {
-    const lat = latMin + Math.random() * (latMax - latMin);
-    const lng = lngMin + Math.random() * (lngMax - lngMin);
-    const isInside = bounds.contains([lat, lng]);
-
-    // console.log(`Generated lat/lng: [${lat}, ${lng}] - Is inside bounds: ${isInside}`);
-
-    if (isInside) {
-      const x = lng;
-      const y = lat;
-
-      // Log before and after projection
-      // console.log("Before projection: lat/lng", lat, lng);
-
-      //if (proj4) {
-        //[x, y] = proj4("EPSG:4326", "EPSG:3857", [lng, lat]);
-        // console.log("After projection: x/y", x, y);
-      //}
-
-      if (!isNaN(x) && !isNaN(y)) {
-        eligiblePoints.push({ x, y, result: Math.round(Math.random()) });
-        // console.log("Eligible point added:", { x, y });
-      }
-    }
-  }
-
-  console.log("Total eligible points:", eligiblePoints.length);
-  return eligiblePoints;
-}
-
-function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
-  if (eligiblePoints.length === 0) {
-    return [];
-  }
-  const sampledPoints: Point[] = [];
-  while (sampledPoints.length < sampleSize && eligiblePoints.length > 0) {
-    const index = Math.floor(Math.random() * eligiblePoints.length);
-    sampledPoints.push(eligiblePoints.splice(index, 1)[0]);
-  }
-  return sampledPoints;
-}
-
-function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: GeoJSON.FeatureCollection; data: Point[] }) {
-  if (!isClient) return null;
-  console.log("Rendering map container...");
-  return <Map isClient={isClient} mapData={mapData} data={data} />;
-}
-
-type Position = number[];
-
-function reprojectFeature(feature: Feature): Feature {
-  const isValidCoordinate = (coord: unknown): coord is [number, number] => 
-    Array.isArray(coord) && coord.length === 2 && 
-    typeof coord[0] === "number" && typeof coord[1] === "number" &&
-    !isNaN(coord[0]) && !isNaN(coord[1]);
-
-  const reprojectGeometryCoordinates = (coordinates: Position[][] | Position[][][]): Position[][] | Position[][][] => {
-    if (Array.isArray(coordinates[0][0])) {
-      // MultiPolygon (extra nesting)
-      return (coordinates as Position[][][]).map((polygon) =>
-        polygon.map((ring) =>
-          ring.filter(isValidCoordinate).map((coord) => {
-            const projectedCoord = proj4("EPSG:5070", "EPSG:4326", coord);
-            return [projectedCoord[0], projectedCoord[1]] as Position;
-          })
-        )
-      );
-    } else {
-      // Polygon
-      return (coordinates as Position[][]).map((ring) =>
-        ring.filter(isValidCoordinate).map((coord) => {
-          const projectedCoord = proj4("EPSG:5070", "EPSG:4326", coord);
-          return [projectedCoord[0], projectedCoord[1]] as Position;
-        })
-      );
-    }
-  };
-
-  if (feature.geometry.type === "Polygon" || feature.geometry.type === "MultiPolygon") {
-    feature.geometry.coordinates = reprojectGeometryCoordinates(feature.geometry.coordinates as Position[][] | Position[][][]);
-  }
-
-  return feature;
 }
 
 export default function App() {
@@ -174,90 +36,14 @@ export default function App() {
   const [predictionResult, setPredictionResult] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
-  const [isMapLoading, setIsMapLoading] = useState<boolean>(true);
-  const [geoJsonReprojected, setMapData] = useState<GeoJSON.FeatureCollection<GeoJSON.Geometry, GeoJSON.GeoJsonProperties>>({
-    type: "FeatureCollection",
-    features: []
-  });
-  const [points, setPoints] = useState<Point[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
-
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(typeof window !== "undefined");
   }, []);
-
-  useEffect(() => {
-    if (!isClient || !isLoaded || loadError) return;
-  
-    const fetchData = async () => {
-      try {
-        const response = await fetch("https://d3js.org/us-10m.v1.json");
-        const us: Topology = await response.json();
-    
-        // Convert TopoJSON to GeoJSON, and explicitly cast to GeoJSON.FeatureCollection
-        const geoJson = topojson.feature(us, us.objects.states) as GeoJSON.FeatureCollection;
-    
-        // Filter for Washington, DC by its id
-        const mapData: GeoJSON.FeatureCollection = {
-          type: 'FeatureCollection',
-          features: geoJson.features.filter((d) => d.id === "11"),  // Filtering for DC
-        };
-    
-        // Log the GeoJSON before using it
-        console.log("Original mapData:", mapData);
-    
-        // Validate if the coordinates are in EPSG:4326 (lat/lng)
-         /* mapData.forEach((feature) => {
-          const geometry = feature.geometry;
-    
-          if (geometry.type === "Polygon" || geometry.type === "MultiPolygon") {
-            const coordinates = geometry.coordinates;
-    
-            // Handle MultiPolygon or Polygon coordinates
-            if (Array.isArray(coordinates[0][0])) {
-              // MultiPolygon (array of polygons)
-              (coordinates as GeoJSON.Position[][]).forEach((polygon: GeoJSON.Position[]) => {
-                polygon.forEach((coord: GeoJSON.Position) => {
-                  console.log(`Feature ${index}: coord`, coord); // Log each coordinate pair
-                });
-              });
-            } else {
-              // Polygon (single polygon)
-              (coordinates as GeoJSON.Position[][]).forEach((polygon: GeoJSON.Position[]) => {
-                polygon.forEach((coord: GeoJSON.Position) => {
-                  console.log(`Feature ${index}: coord`, coord); // Log each coordinate pair
-                });
-              });
-            }
-          } else {
-            console.warn(`Unsupported geometry type: ${geometry.type}`);
-          }
-        }); */
-    
-        // Pass mapData to gatherEligiblePoints to ensure correct bounds        
-        const geoJsonReprojected = mapData.features.map(reprojectFeature);
-        const eligiblePoints = await gatherEligiblePoints(geoJsonReprojected, isClient);
-        const data = samplePoints(eligiblePoints, SAMPLE_SIZE);
-    
-        setMapData({
-          type: "FeatureCollection",
-          features: geoJsonReprojected.map(reprojectFeature)
-        });
-        setPoints(data);
-        setIsMapLoading(false);
-      } catch (error) {
-        console.error("Error fetching map data:", error);
-        setIsMapLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [isClient, isLoaded, loadError]);
-  
 
   useEffect(() => {
     if (!isClient || !isLoaded || loadError || !inputRef.current) return;
@@ -365,33 +151,17 @@ export default function App() {
         {!hasSubmitted && <div className="mt-4 text-white">Please select a DC address, date, and time above</div>}
         {isLoading && <div className="mt-4 text-white">Loading...</div>}
         {predictionResult !== null && (
-            <div
+          <div
             className={`mt-4 p-4 border rounded ${
               predictionResult === 0 ? "bg-[#003B5C] text-white" : "bg-[#56A0D3] text-white"
             }`}
-            >
+          >
             <strong>Prediction Result:</strong>{" "}
             {predictionResult === 0
               ? "You are unlikely to get an expired meter ticket"
               : "You are likely to get an expired meter ticket"}
-            </div>
-        )}
-        {isMapLoading && (
-          <div className="mt-4 text-white loading-text">
-            📍 Loading map... (this may take some time) 📍
           </div>
         )}
-        {!isMapLoading && geoJsonReprojected && points.length > 0 && (
-          <>
-            <h2 className="mt-4 text-white">Below is a sample of predicted tickets (or not) for the current date and time:</h2>
-            <RenderMap isClient={isClient} mapData={geoJsonReprojected} data={points} />
-          </>
-        )}
-        <footer className="mt-8 text-center text-white">
-          <a href="mailto:reedmarkham@gmail.com" className="flex items-center justify-center gap-2">
-            <span>💌</span> reedmarkham@gmail.com
-          </a>
-        </footer>
       </div>
     </div>
   );
@@ -414,7 +184,6 @@ async function makePrediction(inputData: InputState) {
     });
 
     const data = await response.json();
-
     if (response.ok) {
       return data.ticketed;
     } else {
