@@ -124,7 +124,7 @@ export default function App() {
         <h2 className="text-center text-white text-2xl">
           A machine learning model to predict parking tickets for expired meters in Washington, DC
         </h2>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full">
           <input
             ref={inputRef}
             type="text"
@@ -136,7 +136,8 @@ export default function App() {
             onChange={handleChange}
             showTimeSelect
             dateFormat="Pp"
-            className="border p-2 w-full rounded custom-datepicker"
+            className="border p-2 w-full sm:w-auto rounded custom-datepicker"
+            timeIntervals={15}  // Allows selecting time in 15-minute intervals
           />
           <button type="submit" className="bg-blue-500 text-white p-2 rounded" disabled={isLoading}>
             {isLoading ? "Loading..." : "Submit"}
