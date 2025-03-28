@@ -55,10 +55,15 @@ async function gatherEligiblePoints(mapData: GeoJSON.Feature[], isClient: boolea
 
   const eligiblePoints: Point[] = [];
   const bounds = L.geoJSON(mapData).getBounds();
-  const latMin = bounds.getSouthWest().lat;
-  const latMax = bounds.getNorthEast().lat;
-  const lngMin = bounds.getSouthWest().lng;
-  const lngMax = bounds.getNorthEast().lng;
+  // const latMin = bounds.getSouthWest().lat;
+  // const latMax = bounds.getNorthEast().lat;
+  // const lngMin = bounds.getSouthWest().lng;
+  // const lngMax = bounds.getNorthEast().lng;
+
+  const latMin = 38.85;  // Approximate lat/lng for DC
+  const latMax = 38.95;
+  const lngMin = -77.10;
+  const lngMax = -76.90;
 
   console.log("Bounds: ", { latMin, latMax, lngMin, lngMax });
 
