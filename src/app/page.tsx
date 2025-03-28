@@ -5,7 +5,6 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
 import { Library } from "@googlemaps/js-api-loader";
-import dynamic from "next/dynamic"; // Import dynamic for SSR handling
 
 const libraries: Library[] = ["places"];
 
