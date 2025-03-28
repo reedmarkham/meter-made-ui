@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 
 interface Point {
-  x: number;
-  y: number;
+  x: number;  // longitude
+  y: number;  // latitude
   result: number;
 }
 
@@ -57,11 +57,14 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
         }
       }
 
+      // Corrected order to [latitude, longitude]
+      const markerLayerGroup = L.layerGroup().addTo(map); // Using a Layer Group
+
       data.forEach((point) => {
-        L.circle([point.x, point.y], { // Swapped x and y
+        L.circle([point.y, point.x], { // Corrected to [latitude, longitude]
           color: point.result === 0 ? "#003B5C" : "#56A0D3",
           radius: 100,
-        }).addTo(map);
+        }).addTo(markerLayerGroup); // Adding to the Layer Group
       });
 
       setTimeout(() => {
