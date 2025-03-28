@@ -15,12 +15,6 @@ interface InputState {
   y: number;
 }
 
-interface Point {
-  x: number;  // longitude
-  y: number;  // latitude
-  result?: number;
-}
-
 export default function App() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
   if (!apiKey) {
