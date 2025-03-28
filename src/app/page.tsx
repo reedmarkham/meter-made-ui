@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
 import { Library } from "@googlemaps/js-api-loader";
+import Map from "@components/map";  // Import the Map component
 
 const libraries: Library[] = ["places"];
 
@@ -13,6 +14,12 @@ interface InputState {
   h: number;
   x: number;
   y: number;
+}
+
+interface Point {
+  x: number;  // longitude
+  y: number;  // latitude
+  result: number;
 }
 
 export default function App() {
@@ -36,9 +43,14 @@ export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [mapData, setMapData] = useState<GeoJSON.FeatureCollection>({
+    type: "FeatureCollection",
+    features: [],
+  });
+  const [points, setPoints] = useState<Point[]>([]);
 
-  const inputRef = useRef<HTMLInputElement>(null);
-  
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (!isLoaded || loadError || !inputRef.current) return;
 
@@ -73,8 +85,8 @@ export default function App() {
     setError(null);
     setInput((prev) => ({
       ...prev,
-      x: location.lat(),
-      y: location.lng(),
+      x: location.lng(),
+      y: location.lat(),
     }));
   };
 
@@ -99,6 +111,22 @@ export default function App() {
     try {
       const result = await makePrediction(input);
       setPredictionResult(result);
+
+      // Generate 50 random points (addresses) and fetch their predictions
+      const generatedPoints = generateRandomPointsInDC(50);
+      const pointsWithResults = await Promise.all(
+        generatedPoints.map(async (point) => {
+          const result = await makePrediction({
+            d: input.d,
+            h: input.h,
+            x: point.x,
+            y: point.y,
+          });
+          return { ...point, result };
+        })
+      );
+      setPoints(pointsWithResults);
+
     } catch (error) {
       console.error("Prediction error:", error);
       if (error instanceof Error) {
@@ -114,6 +142,21 @@ export default function App() {
   const safeParseDate = (dateStr: string) => {
     const parsedDate = new Date(dateStr);
     return isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+  };
+
+  const generateRandomPointsInDC = (n: number): Point[] => {
+    const latMin = 38.791;  // Southernmost point of DC
+    const latMax = 38.995;  // Northernmost point of DC
+    const lngMin = -77.119;  // Westernmost point of DC
+    const lngMax = -76.909;  // Easternmost point of DC
+
+    const points = [];
+    for (let i = 0; i < n; i++) {
+      const lat = Math.random() * (latMax - latMin) + latMin;
+      const lng = Math.random() * (lngMax - lngMin) + lngMin;
+      points.push({ x: lng, y: lat, result: -1 });  // -1 to denote an unpredicted point
+    }
+    return points;
   };
 
   return (
@@ -159,6 +202,9 @@ export default function App() {
             <span>💌</span> reedmarkham@gmail.com
           </a>
         </footer>
+
+        {/* Display the Map component with generated points */}
+        <Map isClient={true} mapData={mapData} data={points} />
       </div>
     </div>
   );
