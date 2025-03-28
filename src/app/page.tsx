@@ -315,7 +315,7 @@ export default function App() {
       <div className="w-full max-w-xl flex flex-col gap-4 bg-gray-800 p-6 rounded-lg shadow-lg">
         <h1 className="text-center text-white font-semibold text-4xl">meter-made</h1>
         <h2 className="text-center text-white text-2xl">
-          A machine learning model to predict expired meter parking tickets in Washington, DC
+          A machine learning model to predict parking tickets for expired meters in Washington, DC
         </h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
@@ -357,7 +357,7 @@ export default function App() {
         )}
         {!isMapLoading && geoJsonReprojected && points.length > 0 && (
           <>
-            <h2 className="mt-4 text-white">Below is a sample of model predictions for the current date and time:</h2>
+            <h2 className="mt-4 text-white">Below is a sample of predicted tickets (or not) for the current date and time:</h2>
             <RenderMap isClient={isClient} mapData={geoJsonReprojected} data={points} />
           </>
         )}
