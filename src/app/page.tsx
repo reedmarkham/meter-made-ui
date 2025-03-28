@@ -6,7 +6,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
 import { Library } from "@googlemaps/js-api-loader";
 
-const libraries: Library[] = ["places"];
+const libraries: Library[] = ["geometry", "places"];
 
 interface InputState {
   d: string;
@@ -144,27 +144,50 @@ export default function App() {
     return isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
   };
 
+  const dcBoundaryPolygon = [
+    [-77.119759, 38.791645],
+    [-77.009051, 38.791645],
+    [-77.009051, 38.995548],
+    [-77.119759, 38.995548],
+    [-77.119759, 38.791645],
+    [-77.052066, 38.791645],
+    [-77.052066, 38.995548],
+    [-77.069781, 38.995548],
+    [-77.069781, 38.905553],
+    [-77.087945, 38.905553],
+    [-77.087945, 38.852533],
+    [-77.118206, 38.852533],
+    [-77.118206, 38.791645],
+  ];
+  
+  const isPointInDC = (longitude: number, latitude: number): boolean => {
+    const point = new google.maps.LatLng(latitude, longitude);
+    const polygon = new google.maps.Polygon({ paths: dcBoundaryPolygon });
+    return google.maps.geometry.poly.containsLocation(point, polygon);
+  };
+  
   const generateRandomPointsInDC = (n: number): Point[] => {
     const latMin = 38.791;  // Southernmost point of DC
     const latMax = 38.995;  // Northernmost point of DC
     const lngMin = -77.119;  // Westernmost point of DC
     const lngMax = -76.909;  // Easternmost point of DC
-
+  
     const points: Point[] = [];
     let attempts = 0;
-
+  
     // Generate points until we have n valid ones within DC's bounds
     while (points.length < n && attempts < 100) {
       const lat = Math.random() * (latMax - latMin) + latMin;
       const lng = Math.random() * (lngMax - lngMin) + lngMin;
-
-      // Check if the point is within DC's geographical bounds
-      if (lat >= latMin && lat <= latMax && lng >= lngMin && lng <= lngMax) {
+  
+      // Check if the point is within DC's geographical bounds using the polygon check
+      if (isPointInDC(lng, lat)) {
         points.push({ x: lng, y: lat, result: -1 });  // -1 to denote an unpredicted point
       }
+  
       attempts++;
     }
-
+  
     return points;
   };
 
