@@ -20,10 +20,8 @@ interface Point {
   x: number;  // longitude
   y: number;  // latitude
   result: number;
+  address?: string;  // Optional field for address
 }
-
-// Dynamically import the Map component with no SSR
-const Map = dynamic(() => import("@components/map"), { ssr: false });
 
 export default function App() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
@@ -46,10 +44,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [mapData, setMapData] = useState<GeoJSON.FeatureCollection>({
-    type: "FeatureCollection",
-    features: [],
-  });
   const [points, setPoints] = useState<Point[]>([]);
 
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -125,26 +119,14 @@ export default function App() {
             x: point.x,
             y: point.y,
           });
-          return { ...point, result };
+
+          // Fetch address for each generated point using reverse geocoding
+          const address = await getAddressFromCoordinates(point.x, point.y);
+
+          return { ...point, result, address };
         })
       );
       setPoints(pointsWithResults);
-
-      // Set mapData once points are generated
-      const geoJSONData: GeoJSON.FeatureCollection = {
-        type: "FeatureCollection",
-        features: pointsWithResults.map((point) => ({
-          type: "Feature",
-          geometry: {
-            type: "Point",
-            coordinates: [point.x, point.y],  // longitude, latitude
-          },
-          properties: {
-            result: point.result,
-          },
-        })),
-      };
-      setMapData(geoJSONData); // Update mapData
 
     } catch (error) {
       console.error("Prediction error:", error);
@@ -176,6 +158,21 @@ export default function App() {
       points.push({ x: lng, y: lat, result: -1 });  // -1 to denote an unpredicted point
     }
     return points;
+  };
+
+  // Function to reverse geocode coordinates to an address
+  const getAddressFromCoordinates = async (longitude: number, latitude: number): Promise<string> => {
+    const geocoder = new google.maps.Geocoder();
+    return new Promise((resolve, reject) => {
+      const latLng = new google.maps.LatLng(latitude, longitude);
+      geocoder.geocode({ location: latLng }, (results, status) => {
+        if (status === google.maps.GeocoderStatus.OK && results?.[0]) {
+          resolve(results[0].formatted_address);
+        } else {
+          reject("Failed to get address");
+        }
+      });
+    });
   };
 
   return (
@@ -216,14 +213,27 @@ export default function App() {
               : "You are likely to get an expired meter ticket"}
           </div>
         )}
+        
+        {/* Display the sampled points with addresses and prediction results */}
+        <div className="mt-4 text-white">
+          <h3 className="text-xl font-semibold">Sampled Points and Predictions</h3>
+          <ul>
+            {points.map((point, index) => (
+              <li key={index} className="py-2">
+                <strong>Address:</strong> {point.address || "Address not found"}<br />
+                <strong>Prediction:</strong> {point.result === 0
+                  ? "Unlikely to get an expired meter ticket"
+                  : "Likely to get an expired meter ticket"}
+              </li>
+            ))}
+          </ul>
+        </div>
+
         <footer className="mt-8 text-center text-white">
           <a href="mailto:reedmarkham@gmail.com" className="flex items-center justify-center gap-2">
             <span>💌</span> reedmarkham@gmail.com
           </a>
         </footer>
-
-        {/* Display the Map component with generated points */}
-        <Map isClient={true} mapData={mapData} data={points} />
       </div>
     </div>
   );
