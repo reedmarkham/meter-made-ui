@@ -5,7 +5,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
 import { Library } from "@googlemaps/js-api-loader";
-import Map from "@components/map";  // Import the Map component
+import dynamic from "next/dynamic"; // Import dynamic for SSR handling
 
 const libraries: Library[] = ["places"];
 
@@ -21,6 +21,9 @@ interface Point {
   y: number;  // latitude
   result: number;
 }
+
+// Dynamically import the Map component with no SSR
+const Map = dynamic(() => import("@components/map"), { ssr: false });
 
 export default function App() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
