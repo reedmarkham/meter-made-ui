@@ -1,12 +1,11 @@
-"use client";
-
 import React, { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
-import { Library } from "@googlemaps/js-api-loader";
+import { Library } from "@googlemaps/js-api-loader"; // Correctly import Library type
+// import dynamic from "next/dynamic"; // Import dynamic for SSR handling
 
-const libraries: Library[] = ["geometry", "places"];
+const libraries: Library[] = ["places"]; // Use Library[] for the type
 
 interface InputState {
   d: string;
@@ -18,9 +17,11 @@ interface InputState {
 interface Point {
   x: number;  // longitude
   y: number;  // latitude
-  result?: number; // Optional field for prediction result
-  address?: string;  // Optional field for address
+  result?: number;
 }
+
+// Dynamically import the Map component with no SSR
+// const Map = dynamic(() => import("@components/map"), { ssr: false });
 
 export default function App() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
@@ -43,7 +44,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [points, setPoints] = useState<Point[]>([]);
 
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -107,21 +107,6 @@ export default function App() {
     try {
       const result = await makePrediction(input);
       setPredictionResult(result);
-  
-      const generatedPoints = generateRandomPointsInDC(10);  // Generate 10 random points
-      const pointsWithResults = await Promise.all(
-        generatedPoints.map(async (point) => {
-          const { x, y } = point;
-          const predictionResult = await makePrediction({
-            d: input.d,
-            h: input.h,
-            x,
-            y,
-          });
-          return { x, y, result: predictionResult };  // Add result after prediction
-        })
-      );
-      setPoints(pointsWithResults);
     } catch (error) {
       console.error("Prediction error:", error);
       if (error instanceof Error) {
@@ -137,79 +122,6 @@ export default function App() {
   const safeParseDate = (dateStr: string) => {
     const parsedDate = new Date(dateStr);
     return isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
-  };
-
-  const dcBoundaryPolygon = [
-    [-77.119759, 38.791645],
-    [-77.009051, 38.791645],
-    [-77.009051, 38.995548],
-    [-77.119759, 38.995548],
-    [-77.119759, 38.791645],
-    [-77.052066, 38.791645],
-    [-77.052066, 38.995548],
-    [-77.069781, 38.995548],
-    [-77.069781, 38.905553],
-    [-77.087945, 38.905553],
-    [-77.087945, 38.852533],
-    [-77.118206, 38.852533],
-    [-77.118206, 38.791645],
-  ];
-  
-  const isPointInDC = (longitude: number, latitude: number): boolean => {
-    const point = new google.maps.LatLng(latitude, longitude);
-    const polygon = new google.maps.Polygon({ paths: dcBoundaryPolygon });
-    return google.maps.geometry.poly.containsLocation(point, polygon);
-  };
-  
-  const generateRandomPointsInDC = (n: number): Point[] => {
-    const latMin = 38.791;  // Southernmost point of DC
-    const latMax = 38.995;  // Northernmost point of DC
-    const lngMin = -77.119;  // Westernmost point of DC
-    const lngMax = -76.909;  // Easternmost point of DC
-  
-    const points: Point[] = [];
-    let attempts = 0;
-  
-    // Generate points until we have n valid ones within DC's bounds
-    while (points.length < n && attempts < 100) {
-      const lat = Math.random() * (latMax - latMin) + latMin;
-      const lng = Math.random() * (lngMax - lngMin) + lngMin;
-  
-      // Check if the point is within DC's geographical bounds
-      if (isPointInDC(lng, lat)) {
-        points.push({ x: lng, y: lat });  // Initialize without result
-      }
-      attempts++;
-    }
-  
-    return points;
-  };
-
-  // Function to reverse geocode coordinates to an address
-  const getAddressFromCoordinates = async (longitude: number, latitude: number): Promise<string> => {
-    const geocoder = new google.maps.Geocoder();
-    return new Promise((resolve, reject) => {
-      const latLng = new google.maps.LatLng(latitude, longitude);
-      geocoder.geocode({ location: latLng }, (results, status) => {
-        if (status === google.maps.GeocoderStatus.OK && results?.[0]) {
-          const address = results[0].formatted_address;
-          const addressComponents = results[0].address_components;
-  
-          // Check if the address contains "Washington" or "District of Columbia"
-          const isDC = addressComponents?.some((component) =>
-            component.long_name.includes("Washington") || component.long_name.includes("District of Columbia")
-          );
-  
-          if (isDC) {
-            resolve(address);  // Return address if it's in DC
-          } else {
-            reject("Address is not in Washington, DC");
-          }
-        } else {
-          reject("Failed to get address");
-        }
-      });
-    });
   };
 
   return (
@@ -238,7 +150,7 @@ export default function App() {
           </button>
         </form>
         {error && <div className="mt-4 text-red-500">{error}</div>}
-        {!hasSubmitted && <div className="mt-4 text-white">Please select a DC address, date, and time above. Upon submission, a sample of model predictions will also display below.</div>}
+        {!hasSubmitted && <div className="mt-4 text-white">Please select a DC address, date, and time above</div>}
         {isLoading && <div className="mt-4 text-white">Loading...</div>}
         {predictionResult !== null && (
           <div className={`mt-4 p-4 border rounded ${
@@ -250,27 +162,13 @@ export default function App() {
               : "You are likely to get an expired meter ticket"}
           </div>
         )}
-        
-        {/* Display the sampled points with addresses and prediction results */}
-        <div className="mt-4 text-white">
-          <h3 className="text-xl font-semibold">Sampled Points and Predictions</h3>
-          <ul>
-            {points.map((point, index) => (
-              <li key={index} className="py-2">
-                <strong>Address:</strong> {point.address || "Address not found"}<br />
-                <strong>Prediction:</strong> {point.result === 0
-                  ? "Unlikely to get an expired meter ticket"
-                  : "Likely to get an expired meter ticket"}
-              </li>
-            ))}
-          </ul>
-        </div>
-
         <footer className="mt-8 text-center text-white">
           <a href="mailto:reedmarkham@gmail.com" className="flex items-center justify-center gap-2">
             <span>💌</span> reedmarkham@gmail.com
           </a>
         </footer>
+
+        {/* Remove Map Component as it is no longer needed */}
       </div>
     </div>
   );
