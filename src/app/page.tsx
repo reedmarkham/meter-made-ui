@@ -124,6 +124,13 @@ export default function App() {
     return isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
   };
 
+  // Combine date string with hour to create the complete Date object
+  const getDateWithTime = () => {
+    const date = safeParseDate(input.d);
+    date.setHours(input.h); // Set the hour from input.h
+    return date;
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900">
       <div className="w-full max-w-xl flex flex-col gap-4 bg-gray-800 p-6 rounded-lg shadow-lg">
@@ -139,11 +146,11 @@ export default function App() {
             className="border p-2 w-full rounded"
           />
           <DatePicker
-            selected={safeParseDate(input.d)}
+            selected={getDateWithTime()}  // Use the combined date and time here
             onChange={handleChange}
             showTimeSelect
             dateFormat="Pp"
-            className="border p-2 w-full sm:w-auto rounded custom-datepicker"
+            className="border p-2 w-full rounded custom-datepicker"
             timeIntervals={15}  // Allows selecting time in 15-minute intervals
           />
           <button type="submit" className="bg-blue-500 text-white p-2 rounded" disabled={isLoading}>
