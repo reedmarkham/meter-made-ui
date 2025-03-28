@@ -5,7 +5,6 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
 import { Library } from "@googlemaps/js-api-loader";
-import dynamic from "next/dynamic"; // Import dynamic for SSR handling
 
 const libraries: Library[] = ["places"];
 
@@ -109,8 +108,8 @@ export default function App() {
       const result = await makePrediction(input);
       setPredictionResult(result);
 
-      // Generate 10 random points (addresses) and fetch their predictions
-      const generatedPoints = generateRandomPointsInDC(10);
+      // Generate 5 random points (addresses) and fetch their predictions
+      const generatedPoints = generateRandomPointsInDC(5);
       const pointsWithResults = await Promise.all(
         generatedPoints.map(async (point) => {
           const result = await makePrediction({
