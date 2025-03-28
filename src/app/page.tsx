@@ -5,6 +5,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useLoadScript } from "@react-google-maps/api";
 import { Library } from "@googlemaps/js-api-loader";
+import dynamic from "next/dynamic"; // Import dynamic for SSR handling
 
 const libraries: Library[] = ["places"];
 
@@ -108,8 +109,8 @@ export default function App() {
       const result = await makePrediction(input);
       setPredictionResult(result);
 
-      // Generate 50 random points (addresses) and fetch their predictions
-      const generatedPoints = generateRandomPointsInDC(50);
+      // Generate 10 random points (addresses) and fetch their predictions
+      const generatedPoints = generateRandomPointsInDC(10);
       const pointsWithResults = await Promise.all(
         generatedPoints.map(async (point) => {
           const result = await makePrediction({
@@ -150,12 +151,21 @@ export default function App() {
     const lngMin = -77.119;  // Westernmost point of DC
     const lngMax = -76.909;  // Easternmost point of DC
 
-    const points = [];
-    for (let i = 0; i < n; i++) {
+    const points: Point[] = [];
+    let attempts = 0;
+
+    // Generate points until we have n valid ones within DC's bounds
+    while (points.length < n && attempts < 100) {
       const lat = Math.random() * (latMax - latMin) + latMin;
       const lng = Math.random() * (lngMax - lngMin) + lngMin;
-      points.push({ x: lng, y: lat, result: -1 });  // -1 to denote an unpredicted point
+
+      // Check if the point is within DC's geographical bounds
+      if (lat >= latMin && lat <= latMax && lng >= lngMin && lng <= lngMax) {
+        points.push({ x: lng, y: lat, result: -1 });  // -1 to denote an unpredicted point
+      }
+      attempts++;
     }
+
     return points;
   };
 
@@ -200,7 +210,7 @@ export default function App() {
           </button>
         </form>
         {error && <div className="mt-4 text-red-500">{error}</div>}
-        {!hasSubmitted && <div className="mt-4 text-white">Please select a DC address, date, and time above</div>}
+        {!hasSubmitted && <div className="mt-4 text-white">Please select a DC address, date, and time above. Upon submission, a sample of model predictions will also display below.</div>}
         {isLoading && <div className="mt-4 text-white">Loading...</div>}
         {predictionResult !== null && (
           <div className={`mt-4 p-4 border rounded ${
