@@ -175,7 +175,19 @@ export default function App() {
       const latLng = new google.maps.LatLng(latitude, longitude);
       geocoder.geocode({ location: latLng }, (results, status) => {
         if (status === google.maps.GeocoderStatus.OK && results?.[0]) {
-          resolve(results[0].formatted_address);
+          const address = results[0].formatted_address;
+          const addressComponents = results[0].address_components;
+  
+          // Check if the address contains "Washington" or "District of Columbia"
+          const isDC = addressComponents?.some((component) =>
+            component.long_name.includes("Washington") || component.long_name.includes("District of Columbia")
+          );
+  
+          if (isDC) {
+            resolve(address);  // Return address if it's in DC
+          } else {
+            reject("Address is not in Washington, DC");
+          }
         } else {
           reject("Failed to get address");
         }
