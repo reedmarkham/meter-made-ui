@@ -32,21 +32,15 @@ export default function App() {
     x: 0,
     y: 0,
   });
-
   const [predictionResult, setPredictionResult] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const [isClient, setIsClient] = useState(false);
-
+  
   useEffect(() => {
-    setIsClient(typeof window !== "undefined");
-  }, []);
-
-  useEffect(() => {
-    if (!isClient || !isLoaded || loadError || !inputRef.current) return;
+    if (!isLoaded || loadError || !inputRef.current) return;
 
     const options = {
       componentRestrictions: { country: "us" },
@@ -59,7 +53,7 @@ export default function App() {
 
       return () => window.google.maps.event.clearInstanceListeners(autocomplete);
     }
-  }, [isClient, isLoaded, loadError]);
+  }, [isLoaded, loadError]);
 
   const handlePlaceChanged = (autocomplete: google.maps.places.Autocomplete) => {
     const place = autocomplete.getPlace();
@@ -151,17 +145,20 @@ export default function App() {
         {!hasSubmitted && <div className="mt-4 text-white">Please select a DC address, date, and time above</div>}
         {isLoading && <div className="mt-4 text-white">Loading...</div>}
         {predictionResult !== null && (
-          <div
-            className={`mt-4 p-4 border rounded ${
-              predictionResult === 0 ? "bg-[#003B5C] text-white" : "bg-[#56A0D3] text-white"
-            }`}
-          >
+          <div className={`mt-4 p-4 border rounded ${
+            predictionResult === 0 ? "bg-[#003B5C] text-white" : "bg-[#56A0D3] text-white"
+          }`}>
             <strong>Prediction Result:</strong>{" "}
             {predictionResult === 0
               ? "You are unlikely to get an expired meter ticket"
               : "You are likely to get an expired meter ticket"}
           </div>
         )}
+        <footer className="mt-8 text-center text-white">
+          <a href="mailto:reedmarkham@gmail.com" className="flex items-center justify-center gap-2">
+            <span>💌</span> reedmarkham@gmail.com
+          </a>
+        </footer>
       </div>
     </div>
   );
@@ -184,6 +181,7 @@ async function makePrediction(inputData: InputState) {
     });
 
     const data = await response.json();
+
     if (response.ok) {
       return data.ticketed;
     } else {
