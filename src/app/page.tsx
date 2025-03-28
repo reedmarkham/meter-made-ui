@@ -18,7 +18,7 @@ interface InputState {
 interface Point {
   x: number;  // longitude
   y: number;  // latitude
-  result: number;
+  result?: number; // Optional field for prediction result
   address?: string;  // Optional field for address
 }
 
@@ -107,26 +107,21 @@ export default function App() {
     try {
       const result = await makePrediction(input);
       setPredictionResult(result);
-
-      // Generate 5 random points (addresses) and fetch their predictions
-      const generatedPoints = generateRandomPointsInDC(5);
+  
+      const generatedPoints = generateRandomPointsInDC(10);  // Generate 10 random points
       const pointsWithResults = await Promise.all(
         generatedPoints.map(async (point) => {
-          const result = await makePrediction({
+          const { x, y } = point;
+          const predictionResult = await makePrediction({
             d: input.d,
             h: input.h,
-            x: point.x,
-            y: point.y,
+            x,
+            y,
           });
-
-          // Fetch address for each generated point using reverse geocoding
-          const address = await getAddressFromCoordinates(point.x, point.y);
-
-          return { ...point, result, address };
+          return { x, y, result: predictionResult };  // Add result after prediction
         })
       );
       setPoints(pointsWithResults);
-
     } catch (error) {
       console.error("Prediction error:", error);
       if (error instanceof Error) {
@@ -180,11 +175,10 @@ export default function App() {
       const lat = Math.random() * (latMax - latMin) + latMin;
       const lng = Math.random() * (lngMax - lngMin) + lngMin;
   
-      // Check if the point is within DC's geographical bounds using the polygon check
+      // Check if the point is within DC's geographical bounds
       if (isPointInDC(lng, lat)) {
-        points.push({ x: lng, y: lat, result: -1 });  // -1 to denote an unpredicted point
+        points.push({ x: lng, y: lat });  // Initialize without result
       }
-  
       attempts++;
     }
   
