@@ -112,20 +112,23 @@ function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: Ge
 type Position = number[];
 
 function reprojectFeature(feature: GeoJSON.Feature): GeoJSON.Feature {
-  // A reusable function to handle the reprojecting of coordinates
   const reprojectGeometryCoordinates = (coordinates: [number, number][][]): Position[][] => {
     return coordinates.map((polygon) =>
       polygon.map((coord) => {
-        // Reproject each coordinate using proj4
+        // Check if coordinates are valid (finite numbers)
+        if (!Number.isFinite(coord[0]) || !Number.isFinite(coord[1])) {
+          console.warn("Invalid coordinates found:", coord); // Log invalid coordinates for debugging
+          return [0, 0]; // Return fallback coordinates (e.g., [0, 0]) if invalid
+        }
+
+        // Reproject valid coordinates using proj4
         const projectedCoord: Position = proj4("EPSG:5070", "EPSG:4326", coord);
         return [projectedCoord[0], projectedCoord[1]]; // Return as [number, number] tuple
       })
     );
   };
 
-  // Check the geometry type and reproject accordingly
   if (feature.geometry.type === "Polygon" || feature.geometry.type === "MultiPolygon") {
-    // Handle both Polygon and MultiPolygon using the same function
     feature.geometry.coordinates = reprojectGeometryCoordinates(feature.geometry.coordinates as [number, number][][]);
   }
 
