@@ -130,6 +130,22 @@ export default function App() {
       );
       setPoints(pointsWithResults);
 
+      // Set mapData once points are generated
+      const geoJSONData: GeoJSON.FeatureCollection = {
+        type: "FeatureCollection",
+        features: pointsWithResults.map((point) => ({
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: [point.x, point.y],  // longitude, latitude
+          },
+          properties: {
+            result: point.result,
+          },
+        })),
+      };
+      setMapData(geoJSONData); // Update mapData
+
     } catch (error) {
       console.error("Prediction error:", error);
       if (error instanceof Error) {
