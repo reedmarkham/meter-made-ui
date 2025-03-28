@@ -81,10 +81,17 @@ export default function App() {
 
   const handleChange = (date: Date | null) => {
     if (date) {
+      console.log("Date selected:", date); // Debugging the date selection
+
+      const dateString = date.toISOString().split("T")[0]; // Store only the date part
+      const hour = date.getHours(); // Get the hour
+      console.log("Formatted date string:", dateString); // Debugging the formatted date string
+      console.log("Selected hour:", hour); // Debugging the selected hour
+
       setInput((prev) => ({
         ...prev,
-        d: date.toISOString().split("T")[0],  // Store only the date part
-        h: date.getHours(),  // Store the hour separately
+        d: dateString,
+        h: hour,
       }));
     }
   };
