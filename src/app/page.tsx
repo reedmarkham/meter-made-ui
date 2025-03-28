@@ -32,6 +32,7 @@ export default function App() {
     x: 0,
     y: 0,
   });
+  
   const [predictionResult, setPredictionResult] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
@@ -82,8 +83,8 @@ export default function App() {
     if (date) {
       setInput((prev) => ({
         ...prev,
-        d: date.toISOString().split("T")[0],
-        h: date.getHours(),
+        d: date.toISOString().split("T")[0],  // Store only the date part
+        h: date.getHours(),  // Store the hour separately
       }));
     }
   };
@@ -159,8 +160,6 @@ export default function App() {
             <span>💌</span> reedmarkham@gmail.com
           </a>
         </footer>
-
-        {/* Remove Map Component as it is no longer needed */}
       </div>
     </div>
   );
