@@ -9,7 +9,7 @@ interface Point {
 
 interface MapProps {
   isClient: boolean;
-  mapData: Feature[];
+  mapData: GeoJSON.FeatureCollection;
   data: Point[];
 }
 
@@ -49,7 +49,7 @@ const Map: React.FC<MapProps> = ({ isClient, mapData, data }) => {
         }
       });
 
-      if (mapData.length > 0) {
+      if (mapData.features.length > 0) {
         const bounds = L.geoJSON(mapData).getBounds();
         if (bounds.isValid()) {
           map.fitBounds(bounds);

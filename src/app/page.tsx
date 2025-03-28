@@ -10,12 +10,18 @@ import { Topology } from "topojson-specification";
 import "leaflet/dist/leaflet.css";
 import "./styles.css";
 import * as topojson from "topojson-client";
+import proj4 from "proj4";
 
-// Dynamically import custom Map component
-const Map = dynamic(() => import('@/components/map/'), { ssr: false });
+proj4.defs([
+  ["EPSG:5070", "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"],
+  ["EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs"]
+]);
 
 const libraries: Library[] = ["places"];
 const SAMPLE_SIZE = 50;
+
+// Dynamically import custom Map component
+const Map = dynamic(() => import('@/components/map/'), { ssr: false });
 
 interface InputState {
   d: string;
@@ -97,10 +103,28 @@ function samplePoints(eligiblePoints: Point[], sampleSize: number): Point[] {
   return sampledPoints;
 }
 
-function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: GeoJSON.Feature[]; data: Point[] }) {
+function RenderMap({ isClient, mapData, data }: { isClient: boolean; mapData: GeoJSON.FeatureCollection; data: Point[] }) {
   if (!isClient) return null;
   console.log("Rendering map container...");
   return <Map isClient={isClient} mapData={mapData} data={data} />;
+}
+
+function convertToPosition(coord: any): [number, number] {
+  if (Array.isArray(coord) && coord.length === 2) {
+    return coord as [number, number]; // Already correct format
+  } else if (typeof coord === "object" && "x" in coord && "y" in coord) {
+    return [coord.x, coord.y]; // Convert {x, y} → [x, y]
+  }
+  throw new Error(`Invalid coordinate format: ${JSON.stringify(coord)}`);
+}
+
+function reprojectFeature(feature: GeoJSON.Feature) {
+  if (feature.geometry.type === "Polygon" || feature.geometry.type === "MultiPolygon") {
+    feature.geometry.coordinates = feature.geometry.coordinates.map((polygon) =>
+      polygon.map((coord) => proj4("EPSG:5070", "EPSG:4326", convertToPosition(coord)))
+    );
+  }
+  return feature;
 }
 
 export default function App() {
@@ -125,7 +149,10 @@ export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [isMapLoading, setIsMapLoading] = useState<boolean>(true);
-  const [mapData, setMapData] = useState<GeoJSON.Feature[]>([]);
+  const [geoJsonReprojected, setMapData] = useState<GeoJSON.FeatureCollection<GeoJSON.Geometry, GeoJSON.GeoJsonProperties>>({
+    type: "FeatureCollection",
+    features: []
+  });
   const [points, setPoints] = useState<Point[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -149,7 +176,10 @@ export default function App() {
         const geoJson = topojson.feature(us, us.objects.states) as GeoJSON.FeatureCollection;
     
         // Filter for Washington, DC by its id
-        const mapData = geoJson.features.filter((d) => d.id === "11");
+        const mapData: GeoJSON.FeatureCollection = {
+          type: 'FeatureCollection',
+          features: geoJson.features.filter((d) => d.id === "11"),  // Filtering for DC
+        };
     
         // Log the GeoJSON before using it
         console.log("Original mapData:", mapData);
@@ -182,11 +212,15 @@ export default function App() {
           }
         }); */
     
-        // Pass mapData to gatherEligiblePoints to ensure correct bounds
-        const eligiblePoints = await gatherEligiblePoints(mapData, isClient);
+        // Pass mapData to gatherEligiblePoints to ensure correct bounds        
+        const geoJsonReprojected = mapData.features.map(reprojectFeature);
+        const eligiblePoints = await gatherEligiblePoints(geoJsonReprojected, isClient);
         const data = samplePoints(eligiblePoints, SAMPLE_SIZE);
     
-        setMapData(mapData);
+        setMapData({
+          type: "FeatureCollection",
+          features: geoJsonReprojected.map(reprojectFeature)
+        });
         setPoints(data);
         setIsMapLoading(false);
       } catch (error) {
@@ -321,10 +355,10 @@ export default function App() {
             📍 Loading map... (this may take some time) 📍
           </div>
         )}
-        {!isMapLoading && (
+        {!isMapLoading && geoJsonReprojected && points.length > 0 && (
           <>
             <h2 className="mt-4 text-white">Below is a sample of model predictions for the current date and time:</h2>
-              <RenderMap isClient={isClient} mapData={mapData} data={points} />
+            <RenderMap isClient={isClient} mapData={geoJsonReprojected} data={points} />
           </>
         )}
         <footer className="mt-8 text-center text-white">
