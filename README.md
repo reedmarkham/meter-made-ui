@@ -1,3 +1,15 @@
+# Next.js Parking Ticket Prediction App
+
+This Next.js app predicts expired meter parking tickets in Washington, DC using machine learning and Google Maps API.
+
+## Deployment
+
+The app is deployed using **Cloud Build** with a trigger connected to this repository. Changes pushed to the repository automatically trigger a build and deployment.
+
+For more details, check the [Cloud Build documentation](https://cloud.google.com/build).
+
+# More on Next.js
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
@@ -26,11 +38,3 @@ To learn more about Next.js, take a look at the following resources:
 
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
