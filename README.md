@@ -1,6 +1,8 @@
 # Next.js Parking Ticket Prediction App
 
-This Next.js app predicts expired meter parking tickets in Washington, DC using machine learning and Google Maps API.
+This Next.js app predicts expired meter parking tickets in Washington, DC using machine learning and Google Maps API:
+
+![meter-made UI](screenshot.png)
 
 ## Deployment
 
