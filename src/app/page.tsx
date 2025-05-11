@@ -38,8 +38,7 @@ export default function App() {
 
   const { isLoading, hasSubmitted, predictionResult, handleSubmit } = usePrediction({
     input,
-    error,
-    setError,
+    error
   });
 
   const handleChange = (date: Date | null) => {
