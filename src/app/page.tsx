@@ -5,6 +5,10 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useGoogleMapsAutocomplete } from "../hooks/useGoogleMapsAutocomplete";
 import { usePrediction } from "../hooks/usePrediction";
+import { useLoadScript } from "@react-google-maps/api";
+import { LoaderOptions } from "@googlemaps/js-api-loader";
+
+const libraries: LoaderOptions["libraries"] = ["places"];
 
 interface InputState {
   d: string;
@@ -14,6 +18,14 @@ interface InputState {
 }
 
 export default function App() {
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_API_KEY!,
+    libraries,
+  });
+
+  if (!isLoaded) return <div>Loading...</div>;
+  if (loadError) return <div>Error loading Google Maps</div>;
+
   const [input, setInput] = useState<InputState>({
     d: new Date().toISOString(),
     h: new Date().getHours(),
