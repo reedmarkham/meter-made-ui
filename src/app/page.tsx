@@ -1,12 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { useLoadScript } from "@react-google-maps/api";
-import { Library } from "@googlemaps/js-api-loader";
-
-const libraries: Library[] = ["places"];
+import { useGoogleMapsAutocomplete } from "../hooks/useGoogleMapsAutocomplete";
+import { usePrediction } from "../hooks/usePrediction";
 
 interface InputState {
   d: string;
@@ -16,78 +14,38 @@ interface InputState {
 }
 
 export default function App() {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-  if (!apiKey) {
-    throw new Error("NEXT_PUBLIC_GOOGLE_API_KEY environment variable is not defined");
-  }
-
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: apiKey,
-    libraries,
-  });
-
   const [input, setInput] = useState<InputState>({
     d: new Date().toISOString(),
     h: new Date().getHours(),
     x: 0,
     y: 0,
   });
-  
-  const [predictionResult, setPredictionResult] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const inputRef = React.useRef<HTMLInputElement>(null);
+  const { error, setError, inputRef } = useGoogleMapsAutocomplete({
+    onPlaceSelected: (location, isDC) => {
+      if (!isDC) {
+        setError("Please select an address in the District of Columbia.");
+        return;
+      }
+      setError(null);
+      setInput((prev) => ({
+        ...prev,
+        x: location.lng(),
+        y: location.lat(),
+      }));
+    },
+  });
 
-  useEffect(() => {
-    if (!isLoaded || loadError || !inputRef.current) return;
-
-    const options = {
-      componentRestrictions: { country: "us" },
-      fields: ["address_components", "geometry"],
-    };
-
-    if (typeof window !== "undefined" && window.google?.maps) {
-      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current!, options);
-      autocomplete.addListener("place_changed", () => handlePlaceChanged(autocomplete));
-
-      return () => window.google.maps.event.clearInstanceListeners(autocomplete);
-    }
-  }, [isLoaded, loadError]);
-
-  const handlePlaceChanged = (autocomplete: google.maps.places.Autocomplete) => {
-    const place = autocomplete.getPlace();
-    if (!place || !place.geometry || !place.geometry.location) return;
-
-    const location = place.geometry.location;
-    const addressComponents = place.address_components;
-    const isDC = addressComponents?.some((component) =>
-      component.short_name === "DC" || component.long_name === "District of Columbia"
-    );
-
-    if (!isDC) {
-      setError("Please select an address in the District of Columbia.");
-      return;
-    }
-
-    setError(null);
-    setInput((prev) => ({
-      ...prev,
-      x: location.lng(),
-      y: location.lat(),
-    }));
-  };
+  const { isLoading, hasSubmitted, predictionResult, handleSubmit } = usePrediction({
+    input,
+    error,
+    setError,
+  });
 
   const handleChange = (date: Date | null) => {
     if (date) {
-      console.log("Date selected:", date); // Debugging the date selection
-
-      const dateString = date.toISOString().split("T")[0]; // Store only the date part
-      const hour = date.getHours(); // Get the hour
-      console.log("Formatted date string:", dateString); // Debugging the formatted date string
-      console.log("Selected hour:", hour); // Debugging the selected hour
-
+      const dateString = date.toISOString().split("T")[0];
+      const hour = date.getHours();
       setInput((prev) => ({
         ...prev,
         d: dateString,
@@ -96,38 +54,14 @@ export default function App() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (error) {
-      alert(error);
-      return;
-    }
-    setIsLoading(true);
-    setHasSubmitted(true);
-    try {
-      const result = await makePrediction(input);
-      setPredictionResult(result);
-    } catch (error) {
-      console.error("Prediction error:", error);
-      if (error instanceof Error) {
-        alert(`Prediction failed: ${error.message}`);
-      } else {
-        alert("Prediction failed: An unknown error occurred");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const safeParseDate = (dateStr: string) => {
     const parsedDate = new Date(dateStr);
     return isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
   };
 
-  // Combine date string with hour to create the complete Date object
   const getDateWithTime = () => {
     const date = safeParseDate(input.d);
-    date.setHours(input.h); // Set the hour from input.h
+    date.setHours(input.h);
     return date;
   };
 
@@ -146,12 +80,12 @@ export default function App() {
             className="border p-2 w-full rounded"
           />
           <DatePicker
-            selected={getDateWithTime()}  // Use the combined date and time here
+            selected={getDateWithTime()}
             onChange={handleChange}
             showTimeSelect
             dateFormat="Pp"
             className="border p-2 w-full rounded custom-datepicker"
-            timeIntervals={15}  // Allows selecting time in 15-minute intervals
+            timeIntervals={15}
           />
           <button type="submit" className="bg-blue-500 text-white p-2 rounded" disabled={isLoading}>
             {isLoading ? "Loading..." : "Submit"}
@@ -178,33 +112,4 @@ export default function App() {
       </div>
     </div>
   );
-}
-
-async function makePrediction(inputData: InputState) {
-  const apiUrl = process.env.NEXT_PUBLIC_MODEL_API;
-  if (!apiUrl) {
-    throw new Error("NEXT_PUBLIC_MODEL_API environment variable is not defined");
-  }
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(inputData),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      return data.ticketed;
-    } else {
-      throw new Error(data.error || "Prediction failed");
-    }
-  } catch (error) {
-    console.error("Prediction error:", error);
-    throw error;
-  }
 }
