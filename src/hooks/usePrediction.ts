@@ -2,11 +2,10 @@ import { useState } from "react";
 
 interface UsePredictionProps {
   input: { d: string; h: number; x: number; y: number };
-  error: string | null;
-  setError: (error: string | null) => void;
+  error: string | null
 }
 
-export function usePrediction({ input, error, setError }: UsePredictionProps) {
+export function usePrediction({ input, error }: UsePredictionProps) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [predictionResult, setPredictionResult] = useState<number | null>(null);
