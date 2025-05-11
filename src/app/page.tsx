@@ -18,13 +18,11 @@ interface InputState {
 }
 
 export default function App() {
+  // Always call hooks at the top level
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_API_KEY!,
     libraries,
   });
-
-  if (!isLoaded) return <div>Loading...</div>;
-  if (loadError) return <div>Error loading Google Maps</div>;
 
   const [input, setInput] = useState<InputState>({
     d: new Date().toISOString(),
@@ -50,7 +48,7 @@ export default function App() {
 
   const { isLoading, hasSubmitted, predictionResult, handleSubmit } = usePrediction({
     input,
-    error
+    error,
   });
 
   const handleChange = (date: Date | null) => {
@@ -75,6 +73,10 @@ export default function App() {
     date.setHours(input.h);
     return date;
   };
+
+  // Handle loading and error states after hooks are called
+  if (!isLoaded) return <div>Loading...</div>;
+  if (loadError) return <div>Error loading Google Maps</div>;
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900">
@@ -106,9 +108,11 @@ export default function App() {
         {!hasSubmitted && <div className="mt-4 text-white">Please select a DC address, date, and time above</div>}
         {isLoading && <div className="mt-4 text-white">Loading...</div>}
         {predictionResult !== null && (
-          <div className={`mt-4 p-4 border rounded ${
-            predictionResult === 0 ? "bg-[#003B5C] text-white" : "bg-[#56A0D3] text-white"
-          }`}>
+          <div
+            className={`mt-4 p-4 border rounded ${
+              predictionResult === 0 ? "bg-[#003B5C] text-white" : "bg-[#56A0D3] text-white"
+            }`}
+          >
             <strong>Prediction Result:</strong>{" "}
             {predictionResult === 0
               ? "You are unlikely to get an expired meter ticket"
